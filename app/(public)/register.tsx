@@ -1,99 +1,148 @@
-import { useState } from 'react'
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
 import { Text, TextInput, Button, Surface, SegmentedButtons, useTheme } from 'react-native-paper'
 import { Link, router } from 'expo-router'
-import { supabase } from '../../lib/supabase'
+import { useForm, Controller } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { supabase } from '../../src/lib/supabase'
+
+const schema = z.object({
+  fullName: z.string().min(2, 'Nombre demasiado corto'),
+  email: z.string().email('Correo inválido'),
+  password: z.string().min(6, 'Mínimo 6 caracteres'),
+  role: z.enum(['owner', 'renter']),
+})
+
+type RegisterForm = z.infer<typeof schema>
 
 export default function RegisterScreen() {
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'owner' | 'renter'>('renter')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const { colors } = useTheme()
 
-  const handleRegister = async () => {
-    setLoading(true)
-    setError('')
+  const { control, handleSubmit, setError, setValue, watch, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
+    resolver: zodResolver(schema),
+    defaultValues: { fullName: '', email: '', password: '', role: 'renter' },
+  })
 
+  const role = watch('role')
+
+  const onSubmit = async ({ fullName, email, password, role }: RegisterForm) => {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName, role } },
     })
-    if (signUpError) { setError(signUpError.message); setLoading(false); return }
-
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        full_name: fullName,
-        role,
-      })
-      if (profileError) { setError(profileError.message); setLoading(false); return }
+    if (signUpError) {
+      setError('root', { message: signUpError.message })
+      return
     }
 
-    router.replace(role === 'owner' ? '/(owner)' : '/(renter)')
+    if (data.session) {
+      router.replace(role === 'owner' ? '/(owner)' : '/(renter)')
+    } else {
+      setError('root', { message: `Revisa tu correo ${email} — te enviamos un enlace de confirmación.` })
+    }
   }
 
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.scroll}>
-        <Surface style={styles.card} elevation={2}>
+        <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
           <Text variant="headlineMedium" style={[styles.title, { color: colors.primary }]}>
             Crear cuenta
           </Text>
 
-          {error ? (
-            <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
+          {errors.root ? (
+            <Text style={[styles.error, { color: colors.error }]}>{errors.root.message}</Text>
           ) : null}
 
-          <TextInput
-            label="Nombre completo"
-            value={fullName}
-            onChangeText={setFullName}
-            mode="outlined"
-            style={styles.input}
+          <Controller
+            control={control}
+            name="fullName"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                label="Nombre completo"
+                value={value}
+                onChangeText={onChange}
+                mode="outlined"
+                style={styles.input}
+                disabled={isSubmitting}
+                error={!!errors.fullName}
+              />
+            )}
           />
-          <TextInput
-            label="Correo electrónico"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            mode="outlined"
-            style={styles.input}
+          {errors.fullName ? (
+            <Text style={styles.fieldError}>{errors.fullName.message}</Text>
+          ) : null}
+
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                label="Correo electrónico"
+                value={value}
+                onChangeText={onChange}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                mode="outlined"
+                style={styles.input}
+                disabled={isSubmitting}
+                error={!!errors.email}
+              />
+            )}
           />
-          <TextInput
-            label="Contraseña"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            mode="outlined"
-            style={styles.input}
+          {errors.email ? (
+            <Text style={styles.fieldError}>{errors.email.message}</Text>
+          ) : null}
+
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                label="Contraseña"
+                value={value}
+                onChangeText={onChange}
+                secureTextEntry
+                mode="outlined"
+                style={styles.input}
+                disabled={isSubmitting}
+                error={!!errors.password}
+              />
+            )}
           />
+          {errors.password ? (
+            <Text style={styles.fieldError}>{errors.password.message}</Text>
+          ) : null}
 
           <Text variant="bodyMedium" style={styles.roleLabel}>
             ¿Qué tipo de cuenta quieres?
           </Text>
-          <SegmentedButtons
-            value={role}
-            onValueChange={(v) => setRole(v as 'owner' | 'renter')}
-            buttons={[
-              { value: 'owner', label: 'Publicar autos' },
-              { value: 'renter', label: 'Rentar autos' },
-            ]}
-            style={styles.segment}
+
+          <Controller
+            control={control}
+            name="role"
+            render={({ field: { value } }) => (
+              <SegmentedButtons
+                value={value}
+                onValueChange={(v) => setValue('role', v as 'owner' | 'renter')}
+                buttons={[
+                  { value: 'owner', label: 'Publicar autos' },
+                  { value: 'renter', label: 'Rentar autos' },
+                ]}
+                style={styles.segment}
+              />
+            )}
           />
 
           <Button
             mode="contained"
-            onPress={handleRegister}
-            loading={loading}
-            disabled={loading}
+            onPress={handleSubmit(onSubmit)}
+            loading={isSubmitting}
+            disabled={isSubmitting}
             style={styles.button}
             contentStyle={styles.buttonContent}
           >
@@ -114,10 +163,11 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  card: { padding: 28, borderRadius: 20, backgroundColor: '#fff' },
+  card: { padding: 28, borderRadius: 20 },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 20 },
-  input: { marginBottom: 14 },
-  roleLabel: { marginBottom: 10, textAlign: 'center', fontWeight: '500' },
+  input: { marginBottom: 4 },
+  fieldError: { fontSize: 12, color: '#C62828', marginBottom: 10, marginLeft: 4 },
+  roleLabel: { marginBottom: 10, textAlign: 'center', fontWeight: '500', marginTop: 8 },
   segment: { marginBottom: 20 },
   button: { borderRadius: 12 },
   buttonContent: { paddingVertical: 6 },

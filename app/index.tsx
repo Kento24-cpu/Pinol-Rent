@@ -1,28 +1,24 @@
 import { useEffect } from 'react'
 import { View, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
-import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../src/stores/authStore'
 
 export default function Index() {
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) {
-        router.replace('/login')
-        return
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
+  const session = useAuthStore((s) => s.session)
+  const role = useAuthStore((s) => s.role)
+  const initialized = useAuthStore((s) => s.initialized)
 
-      if (profile?.role === 'owner') {
-        router.replace('/(owner)')
-      } else {
-        router.replace('/(renter)')
-      }
-    })
-  }, [])
+  useEffect(() => {
+    if (!initialized) return
+
+    if (!session) {
+      router.replace('/login')
+    } else if (role === 'owner') {
+      router.replace('/(owner)')
+    } else {
+      router.replace('/(renter)')
+    }
+  }, [session, role, initialized])
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

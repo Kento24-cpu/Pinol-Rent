@@ -17,12 +17,17 @@ pinol-rent/
 │   └── (renter)/           # Dashboard del arrendatario
 │       ├── _layout.tsx     # Tabs layout
 │       └── index.tsx       # Búsqueda de autos
-├── components/             # Componentes reutilizables
-├── lib/                    # Utilidades y configuraciones
-│   ├── supabase.ts         # Cliente Supabase
-│   └── theme.ts            # Tema de React Native Paper (paleta azul)
-├── supabase/
+├── src/                    # Código fuente reusable
+│   ├── components/         # Componentes UI reutilizables
+│   ├── hooks/              # Custom hooks (useAuth, etc.)
+│   ├── lib/                # Utilidades y configuraciones
+│   │   ├── supabase.ts     # Cliente Supabase
+│   │   └── theme.ts        # Tema de React Native Paper (paleta azul)
+│   ├── stores/             # Zustand stores
+│   └── types/              # Tipos compartidos y DB types
+├── supabase/               # Backend
 │   └── migrations/         # Schema SQL de la base de datos
+│   └── functions/          # Edge functions
 ├── docs/                   # Documentación del proyecto
 ├── assets/                 # Imágenes, íconos, fuentes
 ├── global.css              # Estilos globales Tailwind

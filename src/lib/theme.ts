@@ -1,4 +1,4 @@
-import { MD3LightTheme, configureFonts } from 'react-native-paper'
+import { MD3LightTheme } from 'react-native-paper'
 
 const palette = {
   primary: '#1565C0',

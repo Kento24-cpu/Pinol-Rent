@@ -1,21 +1,19 @@
 import { useEffect } from 'react'
 import { Stack } from 'expo-router'
 import { router } from 'expo-router'
-import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../src/stores/authStore'
 
 export default function PublicLayout() {
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
+  const session = useAuthStore((s) => s.session)
+  const role = useAuthStore((s) => s.role)
+  const initialized = useAuthStore((s) => s.initialized)
 
-      router.replace(profile?.role === 'owner' ? '/(owner)' : '/(renter)')
-    })
-  }, [])
+  useEffect(() => {
+    if (!initialized) return
+    if (session) {
+      router.replace(role === 'owner' ? '/(owner)' : '/(renter)')
+    }
+  }, [session, role, initialized])
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

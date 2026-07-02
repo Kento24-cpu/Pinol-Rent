@@ -1,24 +1,38 @@
-import { useState } from 'react'
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
 import { Text, TextInput, Button, Surface, useTheme } from 'react-native-paper'
 import { Link, router } from 'expo-router'
-import { supabase } from '../../lib/supabase'
+import { useForm, Controller } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { supabase } from '../../src/lib/supabase'
+
+const schema = z.object({
+  email: z.string().email('Correo inválido'),
+  password: z.string().min(6, 'Mínimo 6 caracteres'),
+})
+
+type LoginForm = z.infer<typeof schema>
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const { colors } = useTheme()
 
-  const handleLogin = async () => {
-    setLoading(true)
-    setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setError(error.message); setLoading(false); return }
+  const { control, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<LoginForm>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: '', password: '' },
+  })
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+  const onSubmit = async ({ email, password }: LoginForm) => {
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      setError('root', { message: signInError.message })
+      return
+    }
+
+    const session = data.session
+    if (!session) {
+      setError('root', { message: 'Error al iniciar sesión. Intenta de nuevo.' })
+      return
+    }
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -32,10 +46,10 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.scroll}>
-        <Surface style={styles.card} elevation={2}>
+        <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
           <Text variant="headlineLarge" style={[styles.title, { color: colors.primary }]}>
             Pinol-Rent
           </Text>
@@ -43,33 +57,56 @@ export default function LoginScreen() {
             Inicia sesión para continuar
           </Text>
 
-          {error ? (
-            <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
+          {errors.root ? (
+            <Text style={[styles.error, { color: colors.error }]}>{errors.root.message}</Text>
           ) : null}
 
-          <TextInput
-            label="Correo electrónico"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            mode="outlined"
-            style={styles.input}
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                label="Correo electrónico"
+                value={value}
+                onChangeText={onChange}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                mode="outlined"
+                style={styles.input}
+                disabled={isSubmitting}
+                error={!!errors.email}
+              />
+            )}
           />
-          <TextInput
-            label="Contraseña"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            mode="outlined"
-            style={styles.input}
+          {errors.email ? (
+            <Text style={[styles.fieldError, { color: colors.error }]}>{errors.email.message}</Text>
+          ) : null}
+
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                label="Contraseña"
+                value={value}
+                onChangeText={onChange}
+                secureTextEntry
+                mode="outlined"
+                style={styles.input}
+                disabled={isSubmitting}
+                error={!!errors.password}
+              />
+            )}
           />
+          {errors.password ? (
+            <Text style={[styles.fieldError, { color: colors.error }]}>{errors.password.message}</Text>
+          ) : null}
 
           <Button
             mode="contained"
-            onPress={handleLogin}
-            loading={loading}
-            disabled={loading}
+            onPress={handleSubmit(onSubmit)}
+            loading={isSubmitting}
+            disabled={isSubmitting}
             style={styles.button}
             contentStyle={styles.buttonContent}
           >
@@ -90,12 +127,13 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  card: { padding: 32, borderRadius: 20, backgroundColor: '#fff' },
+  card: { padding: 32, borderRadius: 20 },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 4 },
   subtitle: { textAlign: 'center', marginBottom: 32 },
-  input: { marginBottom: 14 },
-  button: { marginTop: 8, borderRadius: 12 },
+  input: { marginBottom: 4 },
+  button: { marginTop: 12, borderRadius: 12 },
   buttonContent: { paddingVertical: 6 },
   link: { marginTop: 20, alignSelf: 'center' },
   error: { textAlign: 'center', marginBottom: 16, fontWeight: '500' },
+  fieldError: { fontSize: 12, marginBottom: 10, marginLeft: 4 },
 })

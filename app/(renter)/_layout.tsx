@@ -3,23 +3,24 @@ import { Text } from 'react-native'
 import { Tabs } from 'expo-router'
 import { router } from 'expo-router'
 import { useTheme } from 'react-native-paper'
-import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../src/stores/authStore'
 
 export default function RenterLayout() {
   const { colors } = useTheme()
+  const session = useAuthStore((s) => s.session)
+  const initialized = useAuthStore((s) => s.initialized)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) router.replace('/login')
-    })
-  }, [])
+    if (!initialized) return
+    if (!session) router.replace('/login')
+  }, [session, initialized])
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.onSurfaceVariant,
-        tabBarStyle: { borderTopColor: colors.outline, backgroundColor: '#fff' },
+        tabBarStyle: { borderTopColor: colors.outline, backgroundColor: colors.surface },
       }}
     >
       <Tabs.Screen
