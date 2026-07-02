@@ -1,4 +1,7 @@
 import { StyleSheet } from 'react-native'
-StyleSheet.setFlag('darkMode', 'class')
+
+if (typeof StyleSheet.setFlag === 'function') {
+  StyleSheet.setFlag('darkMode', 'class')
+}
 
 import 'expo-router/entry'
