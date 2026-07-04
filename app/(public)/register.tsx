@@ -11,6 +11,7 @@ const schema = z.object({
   email: z.string().email('Correo inválido'),
   password: z.string().min(6, 'Mínimo 6 caracteres'),
   role: z.enum(['owner', 'renter']),
+  businessName: z.string().optional(),
 })
 
 type RegisterForm = z.infer<typeof schema>
@@ -20,16 +21,16 @@ export default function RegisterScreen() {
 
   const { control, handleSubmit, setError, setValue, watch, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
     resolver: zodResolver(schema),
-    defaultValues: { fullName: '', email: '', password: '', role: 'renter' },
+    defaultValues: { fullName: '', email: '', password: '', role: 'renter', businessName: '' },
   })
 
   const role = watch('role')
 
-  const onSubmit = async ({ fullName, email, password, role }: RegisterForm) => {
+  const onSubmit = async ({ fullName, email, password, role, businessName }: RegisterForm) => {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, role } },
+      options: { data: { full_name: fullName, role, business_name: businessName || null } },
     })
     if (signUpError) {
       setError('root', { message: signUpError.message })
@@ -117,6 +118,28 @@ export default function RegisterScreen() {
           {errors.password ? (
             <Text style={styles.fieldError}>{errors.password.message}</Text>
           ) : null}
+
+          {role === 'owner' && (
+            <>
+              <Controller
+                control={control}
+                name="businessName"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    label="Nombre de la empresa"
+                    value={value ?? ''}
+                    onChangeText={onChange}
+                    mode="outlined"
+                    style={styles.input}
+                    disabled={isSubmitting}
+                  />
+                )}
+              />
+              {errors.businessName ? (
+                <Text style={styles.fieldError}>{errors.businessName.message}</Text>
+              ) : null}
+            </>
+          )}
 
           <Text variant="bodyMedium" style={styles.roleLabel}>
             ¿Qué tipo de cuenta quieres?

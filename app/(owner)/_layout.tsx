@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
-import { Text } from 'react-native'
 import { Tabs } from 'expo-router'
 import { router } from 'expo-router'
-import { useTheme } from 'react-native-paper'
+import { Icon, useTheme } from 'react-native-paper'
 import { useAuthStore } from '../../src/stores/authStore'
 
 export default function OwnerLayout() {
@@ -28,7 +27,7 @@ export default function OwnerLayout() {
         options={{
           title: 'Mis autos',
           tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20, color }}>🚗</Text>
+            <Icon source="car" size={24} color={color as string} />
           ),
         }}
       />
