@@ -87,16 +87,47 @@ export type Database = {
           },
         ]
       }
+      car_tags: {
+        Row: {
+          car_id: number
+          tag_id: number
+        }
+        Insert: {
+          car_id: number
+          tag_id: number
+        }
+        Update: {
+          car_id?: number
+          tag_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_tags_car_id_fkey"
+            columns: ["car_id"]
+            isOneToOne: false
+            referencedRelation: "cars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cars: {
         Row: {
           available: boolean | null
           brand: string
           color: string | null
           created_at: string | null
+          department_id: number | null
           description: string | null
           id: number
           image_url: string | null
-          location: string
+          location: string | null
           model: string
           owner_id: string
           price_per_day: number
@@ -107,10 +138,11 @@ export type Database = {
           brand: string
           color?: string | null
           created_at?: string | null
+          department_id?: number | null
           description?: string | null
           id?: never
           image_url?: string | null
-          location: string
+          location?: string | null
           model: string
           owner_id: string
           price_per_day: number
@@ -121,16 +153,24 @@ export type Database = {
           brand?: string
           color?: string | null
           created_at?: string | null
+          department_id?: number | null
           description?: string | null
           id?: never
           image_url?: string | null
-          location?: string
+          location?: string | null
           model?: string
           owner_id?: string
           price_per_day?: number
           year?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "cars_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cars_owner_id_fkey"
             columns: ["owner_id"]
@@ -140,8 +180,27 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          id: number
+          name: string
+          slug: string
+        }
+        Insert: {
+          id?: never
+          name: string
+          slug: string
+        }
+        Update: {
+          id?: never
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          business_name: string | null
           created_at: string | null
           full_name: string
           id: string
@@ -149,6 +208,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
+          business_name?: string | null
           created_at?: string | null
           full_name: string
           id: string
@@ -156,11 +216,30 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
+          business_name?: string | null
           created_at?: string | null
           full_name?: string
           id?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          id: number
+          name: string
+          slug: string
+        }
+        Insert: {
+          id?: never
+          name: string
+          slug: string
+        }
+        Update: {
+          id?: never
+          name?: string
+          slug?: string
         }
         Relationships: []
       }

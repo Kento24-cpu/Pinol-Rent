@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native'
-import { Text, FAB, Button, useTheme } from 'react-native-paper'
-import { router } from 'expo-router'
+import { Text, FAB, Snackbar, useTheme } from 'react-native-paper'
+import { router, useFocusEffect } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { CarCard } from '../../src/components/CarCard'
@@ -18,61 +19,72 @@ interface FlatCar {
   business_name: string | null
   owner_full_name: string
   tags: { name: string }[]
+  image_url?: string | null
 }
 
 export default function OwnerDashboard() {
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
   const user = useAuthStore((s) => s.session?.user)
   const [cars, setCars] = useState<FlatCar[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
-  const fetchCars = useCallback(async () => {
+  const fetchCars = useCallback(async (isRefresh = false) => {
     if (!user) return
-    const { data } = await supabase
+    if (isRefresh) setRefreshing(true)
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+    const { data, error: fetchError } = await supabase
       .from('cars')
-      .select('id, brand, model, year, price_per_day, available, department:department_id(name), profile:owner_id(full_name, business_name), car_tags(tag:tag_id(name))')
+      .select('id, brand, model, year, price_per_day, available, image_url, description, department:department_id(name), profile:owner_id(full_name, business_name), car_tags(tag:tag_id(name))')
       .eq('owner_id', user.id)
-      .order('created_at', { ascending: false }) as any
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .abortSignal(abortRef.current.signal)
 
-    if (data) {
-      setCars(data.map((c: any) => ({
+    if (fetchError) {
+      setError(fetchError.message)
+    } else if (data) {
+      setError(null)
+      setCars((data as unknown as CarWithRelations[]).map((c) => ({
         id: c.id,
         brand: c.brand,
         model: c.model,
         year: c.year,
         price_per_day: c.price_per_day,
-        available: c.available,
+        available: c.available ?? true,
         department_name: c.department?.name ?? '',
         business_name: c.profile?.business_name ?? null,
         owner_full_name: c.profile?.full_name ?? '',
-        tags: c.car_tags?.map((ct: any) => ({ name: ct.tag.name })) ?? [],
+        tags: c.car_tags?.map((ct) => ({ name: ct.tag.name })) ?? [],
+        image_url: c.image_url,
       })))
     }
     setLoading(false)
+    setRefreshing(false)
   }, [user])
 
-  useEffect(() => { fetchCars() }, [fetchCars])
-
-  const handleLogout = async () => {
-    try { await supabase.auth.signOut() } catch {}
-    router.replace('/login')
-  }
+  useFocusEffect(useCallback(() => {
+    fetchCars()
+    return () => { abortRef.current?.abort() }
+  }, [fetchCars]))
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: colors.onBackground }}>
           Mis autos
         </Text>
-        <Button mode="text" onPress={handleLogout} textColor={colors.onSurfaceVariant}>
-          Cerrar sesión
-        </Button>
       </View>
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator size="large" /></View>
       ) : cars.length === 0 ? (
         <View style={styles.center}>
+          <Text variant="displayMedium" style={{ marginBottom: 16 }}>🚗</Text>
           <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant }}>
             Aún no has publicado autos
           </Text>
@@ -84,10 +96,12 @@ export default function OwnerDashboard() {
         <FlatList
           data={cars}
           renderItem={({ item }) => (
-            <CarCard car={item} onPress={() => {}} />
+            <CarCard car={item} onPress={(id) => router.push(`/(owner)/${id}`)} />
           )}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}
+          refreshing={refreshing}
+          onRefresh={() => fetchCars(true)}
         />
       )}
 
@@ -96,8 +110,12 @@ export default function OwnerDashboard() {
         label="Publicar auto"
         style={[styles.fab, { backgroundColor: colors.primary }]}
         color={colors.onPrimary}
-        onPress={() => router.push('/(owner)/publish' as any)}
+        onPress={() => router.push('/(owner)/publish')}
       />
+
+      <Snackbar visible={!!error} onDismiss={() => setError(null)} action={{ label: 'OK', onPress: () => setError(null) }}>
+        {error}
+      </Snackbar>
     </View>
   )
 }
@@ -109,7 +127,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 8,
     paddingBottom: 16,
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },

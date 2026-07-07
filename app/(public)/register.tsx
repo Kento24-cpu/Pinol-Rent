@@ -75,7 +75,7 @@ export default function RegisterScreen() {
             )}
           />
           {errors.fullName ? (
-            <Text style={styles.fieldError}>{errors.fullName.message}</Text>
+            <Text style={[styles.fieldError, { color: colors.error }]}>{errors.fullName.message}</Text>
           ) : null}
 
           <Controller
@@ -96,7 +96,7 @@ export default function RegisterScreen() {
             )}
           />
           {errors.email ? (
-            <Text style={styles.fieldError}>{errors.email.message}</Text>
+            <Text style={[styles.fieldError, { color: colors.error }]}>{errors.email.message}</Text>
           ) : null}
 
           <Controller
@@ -116,7 +116,7 @@ export default function RegisterScreen() {
             )}
           />
           {errors.password ? (
-            <Text style={styles.fieldError}>{errors.password.message}</Text>
+            <Text style={[styles.fieldError, { color: colors.error }]}>{errors.password.message}</Text>
           ) : null}
 
           {role === 'owner' && (
@@ -136,7 +136,7 @@ export default function RegisterScreen() {
                 )}
               />
               {errors.businessName ? (
-                <Text style={styles.fieldError}>{errors.businessName.message}</Text>
+                <Text style={[styles.fieldError, { color: colors.error }]}>{errors.businessName.message}</Text>
               ) : null}
             </>
           )}
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   card: { padding: 28, borderRadius: 20 },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 20 },
   input: { marginBottom: 4 },
-  fieldError: { fontSize: 12, color: '#C62828', marginBottom: 10, marginLeft: 4 },
+  fieldError: { fontSize: 12, marginBottom: 10, marginLeft: 4 },
   roleLabel: { marginBottom: 10, textAlign: 'center', fontWeight: '500', marginTop: 8 },
   segment: { marginBottom: 20 },
   button: { borderRadius: 12 },

@@ -1,26 +1,40 @@
 import { useEffect, useState } from 'react'
-import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, ScrollView, StyleSheet, ActivityIndicator, Linking, Image, TouchableOpacity } from 'react-native'
 import { Text, Button, Surface, Chip, Icon, useTheme } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'
+import { useAuthStore } from '../../src/stores/authStore'
+import type { CarWithRelations } from '../../src/types/database.types'
 
 export default function CarDetailScreen() {
   const { id } = useLocalSearchParams()
   const { colors } = useTheme()
-  const [car, setCar] = useState<any>(null)
+  const insets = useSafeAreaInsets()
+  const userId = useAuthStore((s) => s.session?.user?.id)
+  const [car, setCar] = useState<CarWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
+
+  const carId = Number(id)
 
   useEffect(() => {
-    ;(supabase as any)
+    if (isNaN(carId)) {
+      setLoading(false)
+      setFetchError(true)
+      return
+    }
+    supabase
       .from('cars')
       .select('*, department:department_id(name), profile:owner_id(full_name, business_name, phone), car_tags(tag:tag_id(name, slug))')
-      .eq('id', Number(id))
+      .eq('id', carId)
       .single()
-      .then(({ data }: any) => {
-        if (data) setCar(data)
+      .then(({ data, error }) => {
+        if (error) { setFetchError(true); setLoading(false); return }
+        if (data) setCar(data as unknown as CarWithRelations)
         setLoading(false)
       })
-  }, [id])
+  }, [carId])
 
   if (loading) {
     return (
@@ -33,25 +47,37 @@ export default function CarDetailScreen() {
   if (!car) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text variant="bodyLarge">Auto no encontrado</Text>
+        <Text variant="displayMedium" style={{ marginBottom: 16 }}>{fetchError ? '⚠️' : '🚗'}</Text>
+        <Text variant="bodyLarge">{fetchError ? 'Error al cargar el auto' : 'Auto no encontrado'}</Text>
         <Button onPress={() => router.back()} style={{ marginTop: 16 }}>Volver</Button>
       </View>
     )
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.imagePlaceholder}>
-        <Icon source="car" size={80} color={colors.onSurfaceVariant} />
-      </View>
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={[styles.backButton, { top: insets.top + 8 }]}
+        onPress={() => router.back()}
+      >
+        <Icon source="arrow-left" size={24} color={colors.surface} />
+      </TouchableOpacity>
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+        {car.image_url ? (
+          <Image source={{ uri: car.image_url }} style={styles.image} resizeMode="cover" />
+        ) : (
+          <View style={[styles.imagePlaceholder, { backgroundColor: colors.primaryContainer }]}>
+            <Icon source="car" size={80} color={colors.onSurfaceVariant} />
+          </View>
+        )}
 
       <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <View style={styles.titleRow}>
           <Text variant="headlineSmall" style={{ fontWeight: 'bold', flex: 1 }}>
             {car.brand} {car.model}
           </Text>
-          <View style={[styles.badge, { backgroundColor: car.available ? '#2E7D3220' : '#C6282820' }]}>
-            <Text variant="labelSmall" style={{ color: car.available ? '#2E7D32' : '#C62828', fontWeight: 'bold' }}>
+          <View style={[styles.badge, { backgroundColor: car.available ? colors.primary + '20' : colors.error + '20' }]}>
+            <Text variant="labelSmall" style={{ color: car.available ? colors.primary : colors.error, fontWeight: 'bold' }}>
               {car.available ? 'Disponible' : 'No disponible'}
             </Text>
           </View>
@@ -90,8 +116,8 @@ export default function CarDetailScreen() {
           <>
             <Text variant="titleSmall" style={styles.sectionTitle}>Características</Text>
             <View style={styles.tags}>
-              {car.car_tags.map((ct: any) => (
-                <Chip key={ct.tag.slug} style={styles.chip} textStyle={styles.chipText}>
+              {car.car_tags.map((ct) => (
+                <Chip key={ct.tag.slug} style={[styles.chip, { backgroundColor: colors.primaryContainer }]} textStyle={styles.chipText}>
                   {ct.tag.name}
                 </Chip>
               ))}
@@ -99,44 +125,52 @@ export default function CarDetailScreen() {
           </>
         )}
 
-        <View style={styles.divider} />
+        {car.owner_id !== userId && (
+          <>
+            <View style={[styles.divider, { backgroundColor: colors.outline }]} />
 
-        <Text variant="titleSmall" style={styles.sectionTitle}>Ofrecido por</Text>
-        <View style={styles.ownerRow}>
-          <Icon source="domain" size={24} color={colors.primary} />
-          <View style={{ marginLeft: 12 }}>
-            <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
-              {car.profile?.business_name || car.profile?.full_name || 'Desconocido'}
-            </Text>
-            {car.profile?.phone && (
-              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-                {car.profile.phone}
-              </Text>
-            )}
-          </View>
-        </View>
+            <Text variant="titleSmall" style={styles.sectionTitle}>Ofrecido por</Text>
+            <View style={styles.ownerRow}>
+              <Icon source="domain" size={24} color={colors.primary} />
+              <View style={{ marginLeft: 12 }}>
+                <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
+                  {car.profile?.business_name || car.profile?.full_name || 'Desconocido'}
+                </Text>
+                {car.profile?.phone && (
+                  <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+                    {car.profile.phone}
+                  </Text>
+                )}
+              </View>
+            </View>
 
-        <Button
-          mode="contained"
-          icon="chat"
-          style={styles.contactBtn}
-          contentStyle={styles.contactBtnContent}
-          onPress={() => {}}
-        >
-          Contactar
-        </Button>
+            {car.profile?.phone ? (
+              <Button
+                mode="contained"
+                icon="phone"
+                style={styles.contactBtn}
+                contentStyle={styles.contactBtnContent}
+                onPress={() => Linking.openURL(`tel:${car.profile!.phone}`)}
+              >
+                Llamar a {car.profile.phone}
+              </Button>
+            ) : null}
+          </>
+        )}
       </Surface>
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  backButton: { position: 'absolute', left: 16, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20, padding: 8 },
   imagePlaceholder: {
     height: 200, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#E3F2FD',
   },
+  image: { width: '100%', height: 200 },
   card: { margin: 16, padding: 24, borderRadius: 20, marginTop: -30 },
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginLeft: 8 },
@@ -145,10 +179,11 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'center' },
   sectionTitle: { fontWeight: 'bold', marginTop: 20, marginBottom: 8 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { backgroundColor: '#E3F2FD', height: 30 },
+  chip: { height: 30 },
   chipText: { fontSize: 12 },
-  divider: { height: 1, backgroundColor: '#CFD8DC', marginVertical: 20 },
+  divider: { height: 1, marginVertical: 20 },
   ownerRow: { flexDirection: 'row', alignItems: 'center' },
   contactBtn: { marginTop: 24, borderRadius: 12 },
   contactBtnContent: { paddingVertical: 8 },
+  contentEnd: { height: 40 },
 })

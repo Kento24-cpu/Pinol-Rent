@@ -42,7 +42,8 @@ export function TagSelector({ tags, selected, onChange }: TagSelectorProps) {
             textStyle={{
               color: isSelected ? colors.onPrimary : colors.onSurfaceVariant,
             }}
-            showSelectedCheck={false}
+            showSelectedCheck
+            selectedColor={colors.primary}
           >
             {tag.name}
           </Chip>

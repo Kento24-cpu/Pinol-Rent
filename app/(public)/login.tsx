@@ -34,13 +34,19 @@ export default function LoginScreen() {
       return
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
+    let role = 'renter'
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+      if (profile) role = profile.role
+    } catch {
+      // fallback to renter if profile fetch fails
+    }
 
-    router.replace(profile?.role === 'owner' ? '/(owner)' : '/(renter)')
+    router.replace(role === 'owner' ? '/(owner)' : '/(renter)')
   }
 
   return (

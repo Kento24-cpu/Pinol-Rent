@@ -39,9 +39,9 @@ export function DepartmentPicker({ departments, value, onChange }: DepartmentPic
         visible={visible}
         onDismiss={() => setVisible(false)}
         animationType="slide"
-        transparent={Platform.OS === 'ios'}
+        transparent
       >
-        <View style={[styles.overlay, { backgroundColor: Platform.OS === 'ios' ? 'rgba(0,0,0,0.4)' : colors.surface }]}>
+        <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
           <View style={[styles.modal, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
               <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>

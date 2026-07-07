@@ -1,22 +1,3 @@
-// Manual type overrides for tables not yet in generated Database types
-
-export interface Department {
-  id: number
-  name: string
-  slug: string
-}
-
-export interface Tag {
-  id: number
-  name: string
-  slug: string
-}
-
-export interface CarTag {
-  car_id: number
-  tag_id: number
-}
-
 export interface CarWithRelations {
   id: number
   brand: string

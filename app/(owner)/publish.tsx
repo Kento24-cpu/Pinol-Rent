@@ -1,22 +1,45 @@
-import { useState, useEffect } from 'react'
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
-import { Text, TextInput, Button, Surface, Switch, useTheme } from 'react-native-paper'
+import { useState, useEffect, useRef } from 'react'
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Alert } from 'react-native'
+import { Text, TextInput, Button, Surface, Switch, Snackbar, useTheme } from 'react-native-paper'
+import * as ImagePicker from 'expo-image-picker'
 import { router } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { DepartmentPicker } from '../../src/components/DepartmentPicker'
 import { TagSelector } from '../../src/components/TagSelector'
-import type { Department, Tag } from '../../src/types/database.types'
+import type { Tables } from '../../src/types/database'
+type Department = Tables<'departments'>
+type Tag = Tables<'tags'>
 
-interface CarForm {
-  brand: string
-  model: string
-  year: string
-  color: string
-  price_per_day: string
-  description: string
+async function uriToBlob(uri: string): Promise<Blob> {
+  if (Platform.OS === 'web') {
+    const res = await fetch(uri)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.blob()
+  }
+  const res = await fetch(uri)
+  return res.blob()
 }
+
+const schema = z.object({
+  brand: z.string().min(1, 'Requerido'),
+  model: z.string().min(1, 'Requerido'),
+  year: z.string().refine(
+    (v) => { const n = parseInt(v, 10); return !isNaN(n) && n >= 2000 && n <= 2030 },
+    'Año inválido (2000-2030)'
+  ),
+  color: z.string().optional(),
+  price_per_day: z.string().refine(
+    (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 },
+    'Precio inválido'
+  ),
+  description: z.string().optional(),
+})
+
+type CarForm = z.infer<typeof schema>
 
 export default function PublishScreen() {
   const { colors } = useTheme()
@@ -26,8 +49,12 @@ export default function PublishScreen() {
   const [departmentId, setDepartmentId] = useState<number | null>(null)
   const [selectedTags, setSelectedTags] = useState<number[]>([])
   const [available, setAvailable] = useState(true)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
-  const { control, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<CarForm>({
+  const { control, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<CarForm>({
+    resolver: zodResolver(schema),
     defaultValues: {
       brand: '', model: '', year: String(new Date().getFullYear()),
       color: '', price_per_day: '', description: '',
@@ -35,13 +62,60 @@ export default function PublishScreen() {
   })
 
   useEffect(() => {
-    supabase.from('departments' as any).select('id, name, slug').order('name' as any).then(({ data }: any) => {
+    supabase.from('departments').select('id, name, slug').order('name').then(({ data }) => {
       if (data) setDepartments(data)
     })
-    supabase.from('tags' as any).select('id, name, slug').order('name' as any).then(({ data }: any) => {
+    supabase.from('tags').select('id, name, slug').order('name').then(({ data }) => {
       if (data) setTags(data)
     })
   }, [])
+
+  const pickAndUploadImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!permission.granted) {
+      Alert.alert('Permiso requerido', 'Habilita el acceso a tus fotos en Configuración para subir una imagen.')
+      return
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    })
+    if (result.canceled || !user) return
+
+    setUploading(true)
+    const file = result.assets[0]
+    const ext = file.fileName?.split('.').pop() ?? 'jpg'
+    const path = `${user.id}/${Date.now()}.${ext}`
+
+    let blob: Blob
+    try {
+      blob = await uriToBlob(file.uri)
+    } catch {
+      setError('root', { message: 'Error al leer la imagen' })
+      setUploading(false)
+      return
+    }
+
+    const { data, error } = await supabase.storage
+      .from('car-images')
+      .upload(path, blob, { contentType: file.mimeType ?? 'image/jpeg' })
+
+    if (error) {
+      setError('root', { message: error.message })
+      setSnackbar({ visible: true, message: `Error al subir imagen: ${error.message}` })
+      setUploading(false)
+      return
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('car-images')
+      .getPublicUrl(data.path)
+
+    setImageUrl(publicUrl)
+    setUploading(false)
+  }
 
   const onSubmit = async (form: CarForm) => {
     if (!departmentId) {
@@ -52,14 +126,6 @@ export default function PublishScreen() {
 
     const year = parseInt(form.year, 10)
     const price_per_day = parseFloat(form.price_per_day)
-    if (isNaN(year) || year < 2000 || year > 2030) {
-      setError('root', { message: 'Año inválido (2000-2030)' })
-      return
-    }
-    if (isNaN(price_per_day) || price_per_day <= 0) {
-      setError('root', { message: 'Precio inválido' })
-      return
-    }
 
     const { data: newCar, error: carError } = await supabase.from('cars').insert({
       owner_id: user.id,
@@ -71,18 +137,24 @@ export default function PublishScreen() {
       description: form.description || null,
       department_id: departmentId,
       available,
-    } as any).select('id').single()
+      image_url: imageUrl,
+    }).select('id').single()
 
     if (carError) { setError('root', { message: carError.message }); return }
 
     if (selectedTags.length > 0 && newCar) {
-      const { error: tagsError } = await supabase.from('car_tags' as any).insert(
+      const { error: tagsError } = await supabase.from('car_tags').insert(
         selectedTags.map((tagId) => ({ car_id: newCar.id, tag_id: tagId }))
       )
       if (tagsError) { setError('root', { message: tagsError.message }); return }
     }
 
-    router.back()
+    reset()
+    setDepartmentId(null)
+    setSelectedTags([])
+    setAvailable(true)
+    setImageUrl(null)
+    setSnackbar({ visible: true, message: 'Auto publicado exitosamente' })
   }
 
   return (
@@ -160,6 +232,27 @@ export default function PublishScreen() {
             )}
           />
 
+          <Text variant="bodyMedium" style={styles.sectionLabel}>Foto</Text>
+          {imageUrl ? (
+            <View style={styles.imagePreview}>
+              <Image source={{ uri: imageUrl }} style={styles.imagePreviewImg} />
+              <Button mode="text" onPress={() => setImageUrl(null)} compact>
+                Quitar foto
+              </Button>
+            </View>
+          ) : (
+            <Button
+              mode="outlined"
+              icon="camera"
+              onPress={pickAndUploadImage}
+              loading={uploading}
+              disabled={uploading}
+              style={styles.input}
+            >
+              {uploading ? 'Subiendo...' : 'Seleccionar foto'}
+            </Button>
+          )}
+
           <Text variant="bodyMedium" style={styles.sectionLabel}>Ubicación</Text>
           <DepartmentPicker
             departments={departments}
@@ -184,10 +277,18 @@ export default function PublishScreen() {
               Cancelar
             </Button>
             <Button mode="contained" onPress={handleSubmit(onSubmit)}
-              loading={isSubmitting} disabled={isSubmitting} style={styles.actionBtn}>
+              loading={isSubmitting} disabled={isSubmitting || uploading} style={styles.actionBtn}>
               Publicar
             </Button>
           </View>
+
+          <Snackbar
+            visible={snackbar.visible}
+            onDismiss={() => setSnackbar({ visible: false, message: '' })}
+            duration={3000}
+          >
+            {snackbar.message}
+          </Snackbar>
         </Surface>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -210,4 +311,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 12, marginTop: 20 },
   actionBtn: { flex: 1, borderRadius: 12 },
   error: { textAlign: 'center', marginBottom: 16, fontWeight: '500' },
+  imagePreview: { alignItems: 'center', marginBottom: 12 },
+  imagePreviewImg: { width: '100%', height: 160, borderRadius: 12, marginBottom: 8 },
 })
