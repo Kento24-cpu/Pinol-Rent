@@ -5,6 +5,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../../src/lib/supabase'
+import { useAuthStore } from '../../src/stores/authStore'
 
 const schema = z.object({
   email: z.string().email('Correo inválido'),
@@ -46,6 +47,7 @@ export default function LoginScreen() {
       // fallback to renter if profile fetch fails
     }
 
+    useAuthStore.getState().setRole(role as 'owner' | 'renter')
     router.replace(role === 'owner' ? '/(owner)' : '/(renter)')
   }
 

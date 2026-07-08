@@ -8,12 +8,14 @@ import { AppDrawerContent } from '../../src/components/AppDrawerContent'
 export default function RenterLayout() {
   const { colors } = useTheme()
   const session = useAuthStore((s) => s.session)
+  const role = useAuthStore((s) => s.role)
   const initialized = useAuthStore((s) => s.initialized)
 
   useEffect(() => {
     if (!initialized) return
     if (!session) router.replace('/login')
-  }, [session, initialized])
+    else if (role === 'owner') router.replace('/(owner)')
+  }, [session, role, initialized])
 
   return (
     <Drawer

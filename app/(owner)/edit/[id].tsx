@@ -2,15 +2,16 @@ import { useState, useEffect, useRef } from 'react'
 import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Alert } from 'react-native'
 import { Text, TextInput, Button, Surface, Switch, Snackbar, useTheme } from 'react-native-paper'
 import * as ImagePicker from 'expo-image-picker'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { supabase } from '../../src/lib/supabase'
-import { useAuthStore } from '../../src/stores/authStore'
-import { DepartmentPicker } from '../../src/components/DepartmentPicker'
-import { TagSelector } from '../../src/components/TagSelector'
-import type { Tables } from '../../src/types/database'
+import { supabase } from '../../../src/lib/supabase'
+import { useAuthStore } from '../../../src/stores/authStore'
+import { DepartmentPicker } from '../../../src/components/DepartmentPicker'
+import { TagSelector } from '../../../src/components/TagSelector'
+import type { Tables } from '../../../src/types/database'
+import type { CarWithRelations } from '../../../src/types/database.types'
 type Department = Tables<'departments'>
 type Tag = Tables<'tags'>
 
@@ -52,7 +53,8 @@ const schema = z.object({
 
 type CarForm = z.infer<typeof schema>
 
-export default function PublishScreen() {
+export default function EditCarScreen() {
+  const { id } = useLocalSearchParams()
   const { colors } = useTheme()
   const user = useAuthStore((s) => s.session?.user)
   const [departments, setDepartments] = useState<Department[]>([])
@@ -61,8 +63,12 @@ export default function PublishScreen() {
   const [selectedTags, setSelectedTags] = useState<number[]>([])
   const [available, setAvailable] = useState(true)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
+
+  const carId = Number(id)
 
   const { control, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<CarForm>({
     resolver: zodResolver(schema),
@@ -73,13 +79,37 @@ export default function PublishScreen() {
   })
 
   useEffect(() => {
-    supabase.from('departments').select('id, name, slug').order('name').then(({ data }) => {
-      if (data) setDepartments(data)
-    })
-    supabase.from('tags').select('id, name, slug').order('name').then(({ data }) => {
-      if (data) setTags(data)
-    })
-  }, [])
+    if (isNaN(carId)) { router.back(); return }
+    const load = async () => {
+      const [carRes, deptRes, tagsRes] = await Promise.all([
+        supabase.from('cars').select('*, department:department_id(name), profile:owner_id(full_name, business_name, phone), car_tags(tag:tag_id(name, slug))').eq('id', carId).single(),
+        supabase.from('departments').select('id, name, slug').order('name'),
+        supabase.from('tags').select('id, name, slug').order('name'),
+      ])
+      if (deptRes.data) setDepartments(deptRes.data)
+      if (tagsRes.data) setTags(tagsRes.data)
+      if (carRes.error || !carRes.data) { router.back(); return }
+      const car = carRes.data as unknown as CarWithRelations
+      reset({
+        brand: car.brand,
+        model: car.model,
+        year: String(car.year),
+        color: car.color ?? '',
+        price_per_day: String(car.price_per_day),
+        description: car.description ?? '',
+      })
+      setDepartmentId(car.department_id)
+      setSelectedTags(car.car_tags?.map((ct) => {
+        const tag = tagsRes.data?.find((t) => t.slug === ct.tag.slug)
+        return tag ? tag.id : -1
+      }).filter((id) => id > 0) ?? [])
+      setAvailable(car.available ?? true)
+      setImageUrl(car.image_url)
+      setOriginalImageUrl(car.image_url)
+      setLoading(false)
+    }
+    load()
+  }, [carId])
 
   const pickAndUploadImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -120,10 +150,7 @@ export default function PublishScreen() {
       return
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('car-images')
-      .getPublicUrl(data.path)
-
+    const { data: { publicUrl } } = supabase.storage.from('car-images').getPublicUrl(data.path)
     setImageUrl(publicUrl)
     setUploading(false)
   }
@@ -138,8 +165,7 @@ export default function PublishScreen() {
     const year = parseInt(form.year, 10)
     const price_per_day = parseFloat(form.price_per_day)
 
-    const { data: newCar, error: carError } = await supabase.from('cars').insert({
-      owner_id: user.id,
+    const { error: carError } = await supabase.from('cars').update({
       brand: form.brand,
       model: form.model,
       year,
@@ -149,24 +175,29 @@ export default function PublishScreen() {
       department_id: departmentId,
       available,
       image_url: imageUrl,
-    }).select('id').single()
+    }).eq('id', carId)
 
     if (carError) { setError('root', { message: carError.message }); return }
 
-    if (selectedTags.length > 0 && newCar) {
+    await supabase.from('car_tags').delete().eq('car_id', carId)
+
+    if (selectedTags.length > 0) {
       const { error: tagsError } = await supabase.from('car_tags').insert(
-        selectedTags.map((tagId) => ({ car_id: newCar.id, tag_id: tagId }))
+        selectedTags.map((tagId) => ({ car_id: carId, tag_id: tagId }))
       )
       if (tagsError) { setError('root', { message: tagsError.message }); return }
     }
 
-    reset()
-    setDepartmentId(null)
-    setSelectedTags([])
-    setAvailable(true)
-    setImageUrl(null)
-    setSnackbar({ visible: true, message: 'Auto publicado exitosamente' })
+    setSnackbar({ visible: true, message: 'Auto actualizado exitosamente' })
     setTimeout(() => router.back(), 1500)
+  }
+
+  if (loading) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text variant="bodyLarge">Cargando...</Text>
+      </View>
+    )
   }
 
   return (
@@ -177,7 +208,7 @@ export default function PublishScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
           <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
-            Publicar auto
+            Editar auto
           </Text>
 
           {errors.root ? (
@@ -248,9 +279,14 @@ export default function PublishScreen() {
           {imageUrl ? (
             <View style={styles.imagePreview}>
               <Image source={{ uri: imageUrl }} style={styles.imagePreviewImg} />
-              <Button mode="text" onPress={() => setImageUrl(null)} compact>
-                Quitar foto
-              </Button>
+              <View style={styles.imageActions}>
+                <Button mode="text" onPress={pickAndUploadImage} disabled={uploading} compact>
+                  <Text>Cambiar</Text>
+                </Button>
+                <Button mode="text" onPress={() => setImageUrl(null)} compact>
+                  <Text>Quitar</Text>
+                </Button>
+              </View>
             </View>
           ) : (
             <Button
@@ -290,7 +326,7 @@ export default function PublishScreen() {
             </Button>
             <Button mode="contained" onPress={handleSubmit(onSubmit)}
               loading={isSubmitting} disabled={isSubmitting || uploading} style={styles.actionBtn}>
-              Publicar
+              Guardar cambios
             </Button>
           </View>
 
@@ -309,6 +345,7 @@ export default function PublishScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 16, paddingBottom: 40 },
   card: { padding: 24, borderRadius: 20 },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 24 },
@@ -325,4 +362,5 @@ const styles = StyleSheet.create({
   error: { textAlign: 'center', marginBottom: 16, fontWeight: '500' },
   imagePreview: { alignItems: 'center', marginBottom: 12 },
   imagePreviewImg: { width: '100%', height: 160, borderRadius: 12, marginBottom: 8 },
+  imageActions: { flexDirection: 'row', gap: 16 },
 })

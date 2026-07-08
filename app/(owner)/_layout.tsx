@@ -8,12 +8,14 @@ import { AppDrawerContent } from '../../src/components/AppDrawerContent'
 export default function OwnerLayout() {
   const { colors } = useTheme()
   const session = useAuthStore((s) => s.session)
+  const role = useAuthStore((s) => s.role)
   const initialized = useAuthStore((s) => s.initialized)
 
   useEffect(() => {
     if (!initialized) return
     if (!session) router.replace('/login')
-  }, [session, initialized])
+    else if (role === 'renter') router.replace('/(renter)')
+  }, [session, role, initialized])
 
   return (
     <Drawer
@@ -50,6 +52,14 @@ export default function OwnerLayout() {
         name="[id]"
         options={{
           title: 'Detalle del auto',
+          drawerItemStyle: { display: 'none' },
+          headerShown: false,
+        }}
+      />
+      <Drawer.Screen
+        name="edit/[id]"
+        options={{
+          title: 'Editar auto',
           drawerItemStyle: { display: 'none' },
           headerShown: false,
         }}

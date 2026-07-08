@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react'
-import { View, ScrollView, StyleSheet, ActivityIndicator, Image, Alert, TouchableOpacity } from 'react-native'
-import { Text, Button, Surface, Chip, Icon, Switch, Snackbar, useTheme } from 'react-native-paper'
-import { router, useLocalSearchParams } from 'expo-router'
+import { useState, useCallback, useRef } from 'react'
+import { View, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native'
+import { Text, Button, Surface, Chip, Icon, Switch, Snackbar, Dialog, Portal, useTheme } from 'react-native-paper'
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
@@ -16,23 +16,30 @@ export default function OwnerCarDetailScreen() {
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
   const [updating, setUpdating] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
+  const genRef = useRef(0)
 
   const carId = Number(id)
 
   const fetchCar = useCallback(async () => {
     if (isNaN(carId)) { setFetchError(true); setLoading(false); return }
+    const gen = ++genRef.current
     const { data, error } = await supabase
       .from('cars')
       .select('*, department:department_id(name), profile:owner_id(full_name, business_name, phone), car_tags(tag:tag_id(name, slug))')
       .eq('id', carId)
       .single()
+    if (gen !== genRef.current) return
     if (error || !data) { setFetchError(true); setLoading(false); return }
     setCar(data as unknown as CarWithRelations)
     setLoading(false)
   }, [carId])
 
-  useEffect(() => { fetchCar() }, [fetchCar])
+  useFocusEffect(useCallback(() => {
+    fetchCar()
+    return () => { genRef.current++ }
+  }, [fetchCar]))
 
   const toggleAvailability = async () => {
     if (!car || !user) return
@@ -47,24 +54,16 @@ export default function OwnerCarDetailScreen() {
     setUpdating(false)
   }
 
-  const handleDelete = () => {
-    Alert.alert('Eliminar auto', '¿Seguro? Esta acción no se puede deshacer.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          setUpdating(true)
-          const { error } = await supabase.from('cars').delete().eq('id', carId)
-          if (error) {
-            setSnackbar({ visible: true, message: error.message })
-            setUpdating(false)
-          } else {
-            router.replace('/(owner)')
-          }
-        },
-      },
-    ])
+  const handleDelete = async () => {
+    setShowDeleteDialog(false)
+    setUpdating(true)
+    const { error } = await supabase.from('cars').delete().eq('id', carId)
+    setUpdating(false)
+    if (error) {
+      setSnackbar({ visible: true, message: error.message })
+    } else {
+      router.replace('/(owner)')
+    }
   }
 
   if (loading) {
@@ -152,7 +151,7 @@ export default function OwnerCarDetailScreen() {
           <View style={styles.ownerControls}>
             <View style={styles.switchRow}>
               <Text variant="bodyMedium" style={{ fontWeight: 'bold' }}>Disponible para rentar</Text>
-              <Switch value={car.available} onValueChange={toggleAvailability} disabled={updating} color={colors.primary} />
+              <Switch value={car.available ?? false} onValueChange={toggleAvailability} disabled={updating} color={colors.primary} />
             </View>
 
             <Button
@@ -160,9 +159,7 @@ export default function OwnerCarDetailScreen() {
               icon="pencil"
               style={styles.editBtn}
               contentStyle={styles.btnContent}
-              onPress={() => {
-                setSnackbar({ visible: true, message: 'Edición próximamente' })
-              }}
+              onPress={() => router.push(`/(owner)/edit/${carId}`)}
             >
               Editar auto
             </Button>
@@ -173,7 +170,7 @@ export default function OwnerCarDetailScreen() {
               textColor={colors.error}
               style={styles.deleteBtn}
               contentStyle={styles.btnContent}
-              onPress={handleDelete}
+              onPress={() => setShowDeleteDialog(true)}
               loading={updating}
               disabled={updating}
             >
@@ -182,6 +179,19 @@ export default function OwnerCarDetailScreen() {
           </View>
         </Surface>
       </ScrollView>
+
+      <Portal>
+        <Dialog visible={showDeleteDialog} onDismiss={() => setShowDeleteDialog(false)} style={{ borderRadius: 8 }}>
+          <Dialog.Title>Eliminar auto</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">¿Seguro? Esta acción no se puede deshacer.</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowDeleteDialog(false)}>Cancelar</Button>
+            <Button onPress={handleDelete} textColor={colors.error}>Eliminar</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
@@ -195,7 +205,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backButton: { position: 'absolute', left: 16, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20, padding: 8 },
   imagePlaceholder: { height: 200, justifyContent: 'center', alignItems: 'center' },
-  image: { width: '100%', height: 200 },
+  image: { width: '100%', aspectRatio: 16 / 9 },
   card: { margin: 16, padding: 24, borderRadius: 20, marginTop: -30 },
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginLeft: 8 },

@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     height: 200, justifyContent: 'center', alignItems: 'center',
   },
-  image: { width: '100%', height: 200 },
+  image: { width: '100%', aspectRatio: 16 / 9 },
   card: { margin: 16, padding: 24, borderRadius: 20, marginTop: -30 },
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginLeft: 8 },

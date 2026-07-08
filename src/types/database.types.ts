@@ -8,7 +8,7 @@ export interface CarWithRelations {
   location: string | null
   description: string | null
   image_url: string | null
-  available: boolean
+  available: boolean | null
   department_id: number | null
   owner_id: string
   created_at: string | null

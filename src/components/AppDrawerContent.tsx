@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { View, StyleSheet } from 'react-native'
+import { View, Image, StyleSheet, Platform } from 'react-native'
 import { DrawerContentScrollView, DrawerItemList } from 'expo-router/drawer'
 import { Text, Icon, useTheme, Divider, TouchableRipple, Dialog, Portal, Button } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import { router } from 'expo-router'
 
@@ -18,27 +17,26 @@ export function AppDrawerContent(props: any) {
 
   const handleLogout = async () => {
     setShowLogout(false)
-    try {
-      await supabase.auth.signOut()
-    } catch (e) {
-      console.error('Error al cerrar sesión:', e)
-    }
     if (typeof localStorage !== 'undefined') {
       const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb-'))
       keys.forEach((k) => localStorage.removeItem(k))
     }
     useAuthStore.getState().reset()
-    router.replace('/(public)/login')
+    router.replace('/login')
   }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={[styles.drawerHeader, { backgroundColor: colors.primaryContainer }]}>
-        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.avatarText, { color: colors.onPrimary }]}>
-            {(userMeta?.full_name as string)?.[0]?.toUpperCase() ?? '?'}
-          </Text>
-        </View>
+        <View style={[styles.drawerHeader, { backgroundColor: colors.primaryContainer }]}>
+        {userMeta?.avatar_url ? (
+          <Image source={{ uri: userMeta.avatar_url as string }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={[styles.avatarText, { color: colors.onPrimary }]}>
+              {(userMeta?.full_name as string)?.[0]?.toUpperCase() ?? '?'}
+            </Text>
+          </View>
+        )}
         <Text variant="titleMedium" style={[styles.name, { color: colors.onPrimaryContainer }]}>
           {(userMeta?.full_name as string) ?? ''}
         </Text>
@@ -68,7 +66,7 @@ export function AppDrawerContent(props: any) {
       </View>
 
       <Portal>
-        <Dialog visible={showLogout} onDismiss={() => setShowLogout(false)}>
+        <Dialog visible={showLogout} onDismiss={() => setShowLogout(false)} style={Platform.OS === 'web' ? { maxWidth: 400, alignSelf: 'center', borderRadius: 8 } : { borderRadius: 8 }}>
           <Dialog.Title>Cerrar sesión</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">¿Estás seguro de que quieres cerrar sesión?</Text>

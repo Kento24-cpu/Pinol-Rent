@@ -6,23 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'
 import { CarCard } from '../../src/components/CarCard'
 import { DepartmentPicker } from '../../src/components/DepartmentPicker'
+import { useCars } from '../../src/hooks/useCars'
 import type { Tables } from '../../src/types/database'
-import type { CarWithRelations } from '../../src/types/database.types'
 type Department = Tables<'departments'>
-
-interface FlatCar {
-  id: number
-  brand: string
-  model: string
-  year: number
-  price_per_day: number
-  available: boolean
-  department_name: string
-  business_name: string | null
-  owner_full_name: string
-  tags: { name: string }[]
-  image_url?: string | null
-}
 
 export default function RenterDashboard() {
   const { colors } = useTheme()
@@ -31,12 +17,8 @@ export default function RenterDashboard() {
   const [query, setQuery] = useState('')
   const [departmentId, setDepartmentId] = useState<number | null>(null)
   const [departments, setDepartments] = useState<Department[]>([])
-  const [cars, setCars] = useState<FlatCar[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { cars, loading, refreshing, error, fetchCars, cancel, clearError } = useCars({ departmentId, searchQuery: query || undefined })
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     supabase.from('departments').select('id, name, slug').order('name').then(({ data }) => {
@@ -51,52 +33,10 @@ export default function RenterDashboard() {
     debounceRef.current = setTimeout(() => setQuery(text), 300)
   }
 
-  const fetchCars = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true)
-    else setLoading(true)
-    abortRef.current?.abort()
-    abortRef.current = new AbortController()
-    let q = supabase
-      .from('cars')
-      .select('id, brand, model, year, price_per_day, available, image_url, department:department_id(name), profile:owner_id(full_name, business_name), car_tags(tag:tag_id(name))')
-      .eq('available', true)
-      .order('created_at', { ascending: false })
-      .limit(50)
-      .abortSignal(abortRef.current.signal)
-
-    if (departmentId) q = q.eq('department_id', departmentId)
-    if (query) {
-      const like = `%${query}%`
-      q = q.or(`brand.ilike.${like},model.ilike.${like}`)
-    }
-
-    const { data, error: fetchError } = await q
-    if (fetchError) {
-      setError(fetchError.message)
-    } else if (data) {
-      setError(null)
-      setCars((data as unknown as CarWithRelations[]).map((c) => ({
-        id: c.id,
-        brand: c.brand,
-        model: c.model,
-        year: c.year,
-        price_per_day: c.price_per_day,
-        available: c.available ?? true,
-        department_name: c.department?.name ?? '',
-        business_name: c.profile?.business_name ?? null,
-        owner_full_name: c.profile?.full_name ?? '',
-        tags: c.car_tags?.map((ct) => ({ name: ct.tag.name })) ?? [],
-        image_url: c.image_url,
-      })))
-    }
-    setLoading(false)
-    setRefreshing(false)
-  }, [departmentId, query])
-
   useFocusEffect(useCallback(() => {
-    fetchCars()
-    return () => { abortRef.current?.abort() }
-  }, [fetchCars]))
+    if (departmentId !== undefined) fetchCars()
+    return cancel
+  }, [fetchCars, cancel, departmentId]))
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -154,7 +94,7 @@ export default function RenterDashboard() {
           onRefresh={() => fetchCars(true)}
         />
       )}
-      <Snackbar visible={!!error} onDismiss={() => setError(null)} action={{ label: 'OK', onPress: () => setError(null) }}>
+      <Snackbar visible={!!error} onDismiss={clearError} action={{ label: 'OK', onPress: clearError }}>
         {error}
       </Snackbar>
     </View>

@@ -1,4 +1,3 @@
-import '../global.css'
 import { Stack } from 'expo-router'
 import { PaperProvider } from 'react-native-paper'
 import { StatusBar } from 'expo-status-bar'

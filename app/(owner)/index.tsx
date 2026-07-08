@@ -1,76 +1,22 @@
-import { useState, useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, FAB, Snackbar, useTheme } from 'react-native-paper'
 import { router, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { CarCard } from '../../src/components/CarCard'
-import type { CarWithRelations } from '../../src/types/database.types'
-
-interface FlatCar {
-  id: number
-  brand: string
-  model: string
-  year: number
-  price_per_day: number
-  available: boolean
-  department_name: string
-  business_name: string | null
-  owner_full_name: string
-  tags: { name: string }[]
-  image_url?: string | null
-}
+import { useCars } from '../../src/hooks/useCars'
 
 export default function OwnerDashboard() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const user = useAuthStore((s) => s.session?.user)
-  const [cars, setCars] = useState<FlatCar[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
-
-  const fetchCars = useCallback(async (isRefresh = false) => {
-    if (!user) return
-    if (isRefresh) setRefreshing(true)
-    abortRef.current?.abort()
-    abortRef.current = new AbortController()
-    const { data, error: fetchError } = await supabase
-      .from('cars')
-      .select('id, brand, model, year, price_per_day, available, image_url, description, department:department_id(name), profile:owner_id(full_name, business_name), car_tags(tag:tag_id(name))')
-      .eq('owner_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50)
-      .abortSignal(abortRef.current.signal)
-
-    if (fetchError) {
-      setError(fetchError.message)
-    } else if (data) {
-      setError(null)
-      setCars((data as unknown as CarWithRelations[]).map((c) => ({
-        id: c.id,
-        brand: c.brand,
-        model: c.model,
-        year: c.year,
-        price_per_day: c.price_per_day,
-        available: c.available ?? true,
-        department_name: c.department?.name ?? '',
-        business_name: c.profile?.business_name ?? null,
-        owner_full_name: c.profile?.full_name ?? '',
-        tags: c.car_tags?.map((ct) => ({ name: ct.tag.name })) ?? [],
-        image_url: c.image_url,
-      })))
-    }
-    setLoading(false)
-    setRefreshing(false)
-  }, [user])
+  const { cars, loading, refreshing, error, fetchCars, cancel, clearError } = useCars({ ownerId: user?.id })
 
   useFocusEffect(useCallback(() => {
     fetchCars()
-    return () => { abortRef.current?.abort() }
-  }, [fetchCars]))
+    return cancel
+  }, [fetchCars, cancel]))
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -113,7 +59,7 @@ export default function OwnerDashboard() {
         onPress={() => router.push('/(owner)/publish')}
       />
 
-      <Snackbar visible={!!error} onDismiss={() => setError(null)} action={{ label: 'OK', onPress: () => setError(null) }}>
+      <Snackbar visible={!!error} onDismiss={clearError} action={{ label: 'OK', onPress: clearError }}>
         {error}
       </Snackbar>
     </View>
