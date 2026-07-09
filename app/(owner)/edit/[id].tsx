@@ -8,33 +8,13 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../../../src/lib/supabase'
 import { useAuthStore } from '../../../src/stores/authStore'
+import { mimeToExt, uriToBlob } from '../../../src/lib/upload'
 import { DepartmentPicker } from '../../../src/components/DepartmentPicker'
 import { TagSelector } from '../../../src/components/TagSelector'
 import type { Tables } from '../../../src/types/database'
 import type { CarWithRelations } from '../../../src/types/database.types'
 type Department = Tables<'departments'>
 type Tag = Tables<'tags'>
-
-const mimeToExt = (mime: string | undefined | null): string | null => {
-  const map: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-    'image/heic': 'heic',
-    'image/heif': 'heif',
-  }
-  return mime ? map[mime] ?? null : null
-}
-
-async function uriToBlob(uri: string): Promise<Blob> {
-  if (Platform.OS === 'web') {
-    const res = await fetch(uri)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return res.blob()
-  }
-  const res = await fetch(uri)
-  return res.blob()
-}
 
 const schema = z.object({
   brand: z.string().min(1, 'Requerido'),

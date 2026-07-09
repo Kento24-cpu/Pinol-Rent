@@ -156,6 +156,16 @@ export default function OwnerCarDetailScreen() {
 
             <Button
               mode="contained"
+              icon="forum"
+              style={styles.editBtn}
+              contentStyle={styles.btnContent}
+              onPress={() => router.push('/(owner)/conversations')}
+            >
+              Ver mensajes
+            </Button>
+
+            <Button
+              mode="contained"
               icon="pencil"
               style={styles.editBtn}
               contentStyle={styles.btnContent}

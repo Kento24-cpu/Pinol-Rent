@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { View, ScrollView, StyleSheet, ActivityIndicator, Linking, Image, TouchableOpacity } from 'react-native'
-import { Text, Button, Surface, Chip, Icon, useTheme } from 'react-native-paper'
+import { Text, Button, Surface, Chip, Icon, Snackbar, useTheme } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
+import { findOrCreateConversation } from '../../src/lib/chat'
 import type { CarWithRelations } from '../../src/types/database.types'
 
 export default function CarDetailScreen() {
@@ -15,6 +16,7 @@ export default function CarDetailScreen() {
   const [car, setCar] = useState<CarWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
+  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
   const carId = Number(id)
 
@@ -155,10 +157,32 @@ export default function CarDetailScreen() {
                 Llamar a {car.profile.phone}
               </Button>
             ) : null}
+
+            <Button
+              mode="outlined"
+              icon="forum"
+              style={styles.contactBtn}
+              contentStyle={styles.contactBtnContent}
+              onPress={async () => {
+                if (!car) return
+                try {
+                  const convId = await findOrCreateConversation(car.id, car.owner_id, userId!)
+                  router.push(`/(renter)/conversations/${convId}`)
+                } catch {
+                  setSnackbar({ visible: true, message: 'Error al iniciar conversación' })
+                }
+              }}
+            >
+              Enviar mensaje
+            </Button>
           </>
         )}
       </Surface>
       </ScrollView>
+
+      <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
+        {snackbar.message}
+      </Snackbar>
     </View>
   )
 }

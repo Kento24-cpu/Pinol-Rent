@@ -1,61 +1,116 @@
-# Esquema de base de datos
-
-## Tecnología
-
-PostgreSQL 15+ en Supabase. Migraciones en `/supabase/migrations/`.
+# Database Schema
 
 ## Tablas
 
-### `profiles`
+### profiles
+| Columna | Tipo | Notas |
+|---------|------|-------|
+| id | UUID PK | references auth.users |
+| full_name | TEXT NOT NULL | |
+| phone | TEXT | |
+| role | user_role | 'owner' \| 'renter' |
+| business_name | TEXT | solo owners |
+| avatar_url | TEXT | migration 5 |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | trigger |
 
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | UUID (PK) | Referencia a `auth.users` |
-| full_name | TEXT | Nombre completo |
-| phone | TEXT | Teléfono de contacto |
-| role | ENUM('owner', 'renter') | Rol del usuario |
-| created_at | TIMESTAMPTZ | Fecha de registro |
+### cars
+| Columna | Tipo | Notas |
+|---------|------|-------|
+| id | BIGINT PK | auto |
+| owner_id | UUID FK | -> profiles CASCADE |
+| brand | TEXT NOT NULL | |
+| model | TEXT NOT NULL | |
+| year | INT | |
+| color | TEXT | |
+| price_per_day | DECIMAL(10,2) | |
+| location | TEXT | nullable |
+| description | TEXT | |
+| image_url | TEXT | |
+| available | BOOLEAN | default true |
+| department_id | BIGINT FK | -> departments |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | trigger |
 
-### `cars`
+### departments
+| Columna | Tipo |
+|---------|------|
+| id | BIGINT PK |
+| name | TEXT UNIQUE |
+| slug | TEXT UNIQUE |
 
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | BIGINT (PK) | ID autoincremental |
-| owner_id | UUID (FK → profiles) | Propietario del auto |
-| brand | TEXT | Marca (Toyota, Nissan, etc.) |
-| model | TEXT | Modelo específico |
-| year | INTEGER | Año del vehículo |
-| color | TEXT | Color |
-| price_per_day | DECIMAL(10,2) | Precio por día en USD/C$ |
-| location | TEXT | Ciudad o dirección |
-| description | TEXT | Descripción del auto |
-| image_url | TEXT | URL de foto (Supabase Storage) |
-| available | BOOLEAN | Disponible para rentar |
-| created_at | TIMESTAMPTZ | Fecha de publicación |
+### tags
+| Columna | Tipo |
+|---------|------|
+| id | BIGINT PK |
+| name | TEXT UNIQUE |
+| slug | TEXT UNIQUE |
 
-### `bookings`
+### car_tags (M:N)
+| Columna | Tipo |
+|---------|------|
+| car_id | BIGINT FK -> cars CASCADE |
+| tag_id | BIGINT FK -> tags CASCADE |
+| PK | (car_id, tag_id) |
 
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | BIGINT (PK) | ID autoincremental |
-| car_id | BIGINT (FK → cars) | Auto reservado |
-| renter_id | UUID (FK → profiles) | Persona que reserva |
-| start_date | DATE | Inicio de la renta |
-| end_date | DATE | Fin de la renta |
-| total_price | DECIMAL(10,2) | Precio total calculado |
-| status | ENUM('pending', 'confirmed', 'cancelled', 'completed') | Estado |
-| created_at | TIMESTAMPTZ | Fecha de reserva |
+### bookings
+| Columna | Tipo | Notas |
+|---------|------|-------|
+| id | BIGINT PK | auto |
+| car_id | BIGINT FK | -> cars CASCADE |
+| renter_id | UUID FK | -> profiles CASCADE |
+| start_date | DATE | |
+| end_date | DATE | |
+| total_price | DECIMAL(10,2) | |
+| status | booking_status | 'pending' \| 'confirmed' \| 'cancelled' \| 'completed' |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | trigger |
 
-## Políticas de seguridad (RLS)
+### conversations (migration 6)
+| Columna | Tipo | Notas |
+|---------|------|-------|
+| id | BIGINT PK | auto |
+| car_id | BIGINT FK | -> cars CASCADE |
+| renter_id | UUID FK | -> profiles CASCADE |
+| owner_id | UUID FK | -> profiles CASCADE |
+| booking_id | BIGINT FK | -> bookings SET NULL (opcional) |
+| last_message_at | TIMESTAMPTZ | |
+| created_at | TIMESTAMPTZ | |
 
-| Tabla | Operación | ¿Quién puede? |
-|-------|-----------|---------------|
-| profiles | SELECT | Todos (público) |
-| profiles | UPDATE | Solo propio perfil |
-| cars | SELECT | Todos (público) |
-| cars | INSERT | Solo owner del auto |
-| cars | UPDATE | Solo owner del auto |
-| cars | DELETE | Solo owner del auto |
-| bookings | SELECT | El renter o el owner del auto |
-| bookings | INSERT | Solo el renter |
-| bookings | UPDATE | El renter o el owner del auto |
+### messages (migration 6)
+| Columna | Tipo | Notas |
+|---------|------|-------|
+| id | BIGINT PK | auto |
+| conversation_id | BIGINT FK | -> conversations CASCADE |
+| sender_id | UUID FK | -> profiles CASCADE |
+| content | TEXT NOT NULL | |
+| attachment_url | TEXT | opcional |
+| read_at | TIMESTAMPTZ | leído |
+| created_at | TIMESTAMPTZ | |
+
+### push_tokens (migration 6)
+| Columna | Tipo |
+|---------|------|
+| id | BIGINT PK |
+| user_id | UUID FK -> profiles CASCADE |
+| token | TEXT NOT NULL |
+| platform | TEXT DEFAULT 'expo' |
+| created_at | TIMESTAMPTZ |
+
+## RLS Policies
+
+- **profiles**: SELECT all autenticados, INSERT/UPDATE own
+- **cars**: SELECT all if available (owner sees own regardless), INSERT/UPDATE/DELETE own
+- **bookings**: SELECT own (renter) or on own cars (owner), INSERT renter only, UPDATE/DELETE participants
+- **conversations**: SELECT/INSERT/UPDATE solo participantes (renter_id OR owner_id)
+- **messages**: SELECT/INSERT solo participantes de la conversación, UPDATE own messages
+- **push_tokens**: INSERT/SELECT/DELETE own
+- **storage/car-images**: INSERT/UPDATE/DELETE own, SELECT all
+- **storage/chat-attachments**: INSERT/UPDATE/DELETE own, SELECT authenticated (filtro por participante via RLS)
+
+## Indexes
+
+- bookings: car_id, renter_id, status
+- conversations: renter_id, owner_id, car_id
+- messages: (conversation_id, created_at)
+- push_tokens: user_id

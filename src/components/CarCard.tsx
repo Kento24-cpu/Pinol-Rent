@@ -31,7 +31,7 @@ export function CarCard({ car, onPress }: CarCardProps) {
       elevation={2}
     >
       {car.image_url ? (
-        <Card.Cover source={{ uri: car.image_url }} style={[styles.cover, { height: null }]} />
+        <Card.Cover source={{ uri: car.image_url }} style={styles.cover} />
       ) : null}
       <Card.Content>
         <View style={styles.topRow}>
@@ -90,7 +90,7 @@ export function CarCard({ car, onPress }: CarCardProps) {
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: 16, marginVertical: 10, borderRadius: 16 },
-  cover: { borderTopLeftRadius: 16, borderTopRightRadius: 16, aspectRatio: 16 / 9 },
+  cover: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180 },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   businessName: { fontWeight: 'bold', marginLeft: 6, flex: 1 },
   badge: { paddingHorizontal: 10, paddingVertical: 2, borderRadius: 20 },

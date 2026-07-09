@@ -117,6 +117,136 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          id: number
+          car_id: number
+          renter_id: string
+          owner_id: string
+          booking_id: number | null
+          last_message_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          car_id: number
+          renter_id: string
+          owner_id: string
+          booking_id?: number | null
+          last_message_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          car_id?: number
+          renter_id?: string
+          owner_id?: string
+          booking_id?: number | null
+          last_message_at?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_car_id_fkey"
+            columns: ["car_id"]
+            isOneToOne: false
+            referencedRelation: "cars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_renter_id_fkey"
+            columns: ["renter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_tokens: {
+        Row: {
+          id: number
+          user_id: string
+          token: string
+          platform: string
+          created_at: string | null
+        }
+        Insert: {
+          user_id: string
+          token: string
+          platform?: string
+          created_at?: string | null
+        }
+        Update: {
+          user_id?: string
+          token?: string
+          platform?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          id: number
+          conversation_id: number
+          sender_id: string
+          content: string
+          attachment_url: string | null
+          read_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          conversation_id: number
+          sender_id: string
+          content: string
+          attachment_url?: string | null
+          read_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          conversation_id?: number
+          sender_id?: string
+          content?: string
+          attachment_url?: string | null
+          read_at?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cars: {
         Row: {
           available: boolean | null
@@ -200,6 +330,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           business_name: string | null
           created_at: string | null
           full_name: string
@@ -208,6 +339,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
+          avatar_url?: string | null
           business_name?: string | null
           created_at?: string | null
           full_name: string
@@ -216,6 +348,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
+          avatar_url?: string | null
           business_name?: string | null
           created_at?: string | null
           full_name?: string

@@ -2,6 +2,24 @@ import { useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 
+async function fetchProfileWithRetry(userId: string, retries = 3, delay = 500): Promise<'owner' | 'renter' | null> {
+  for (let i = 0; i < retries; i++) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single()
+    if (profile?.role) return profile.role as 'owner' | 'renter'
+    if (i < retries - 1) await new Promise((r) => setTimeout(r, delay))
+  }
+  const { data: fallback } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single()
+  return (fallback?.role ?? null) as 'owner' | 'renter' | null
+}
+
 export function useAuth() {
   const session = useAuthStore((s) => s.session)
   const role = useAuthStore((s) => s.role)
@@ -20,13 +38,9 @@ export function useAuth() {
           fetchingRef.current = true
           const currentUserId = session.user.id
           try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', currentUserId)
-              .single()
+            const userRole = await fetchProfileWithRetry(currentUserId)
             if (useAuthStore.getState().session?.user?.id === currentUserId) {
-              store.setRole(profile?.role ?? null)
+              store.setRole(userRole)
             }
           } catch (e) {
             console.error('Failed to fetch profile', e)

@@ -48,6 +48,21 @@ export default function RenterLayout() {
         }}
       />
       <Drawer.Screen
+        name="conversations/index"
+        options={{
+          title: 'Mensajes',
+          drawerLabel: 'Mensajes',
+          drawerIcon: ({ color }) => <Icon source="forum" size={22} color={color as string} />,
+        }}
+      />
+      <Drawer.Screen
+        name="conversations/[id]"
+        options={{
+          title: 'Chat',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
         name="profile"
         options={{
           title: 'Mi perfil',

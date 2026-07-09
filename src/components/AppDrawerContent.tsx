@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { View, Image, StyleSheet, Platform } from 'react-native'
-import { DrawerContentScrollView, DrawerItemList } from 'expo-router/drawer'
+import { DrawerContentScrollView, DrawerItemList, type DrawerContentComponentProps } from 'expo-router/drawer'
 import { Text, Icon, useTheme, Divider, TouchableRipple, Dialog, Portal, Button } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import { router } from 'expo-router'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function AppDrawerContent(props: any) {
+export function AppDrawerContent(props: DrawerContentComponentProps) {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const session = useAuthStore((s) => s.session)
@@ -17,10 +17,7 @@ export function AppDrawerContent(props: any) {
 
   const handleLogout = async () => {
     setShowLogout(false)
-    if (typeof localStorage !== 'undefined') {
-      const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb-'))
-      keys.forEach((k) => localStorage.removeItem(k))
-    }
+    await supabase.auth.signOut()
     useAuthStore.getState().reset()
     router.replace('/login')
   }

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { View, ScrollView, StyleSheet, ActivityIndicator, Image, Platform, Alert } from 'react-native'
+import { View, ScrollView, StyleSheet, ActivityIndicator, Image, Alert } from 'react-native'
 import { Text, TextInput, Button, Surface, Snackbar, useTheme } from 'react-native-paper'
 import * as ImagePicker from 'expo-image-picker'
 import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../lib/supabase'
+import { uriToBlob } from '../lib/upload'
 import { useAuthStore } from '../stores/authStore'
 
 interface ProfileScreenProps {
@@ -17,16 +18,6 @@ interface ProfileData {
   businessName: string
   phone: string
   avatarUrl: string
-}
-
-async function uriToBlob(uri: string): Promise<Blob> {
-  if (Platform.OS === 'web') {
-    const res = await fetch(uri)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return res.blob()
-  }
-  const res = await fetch(uri)
-  return res.blob()
 }
 
 export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
