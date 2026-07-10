@@ -1,6 +1,15 @@
 -- Migration 6: Chat system (conversations + messages)
+-- Revised: idempotent, pg_net enabled, safe to re-run
 
--- Conversations between car owners and renters
+-- 1. Enable pg_net for HTTP requests to Edge Function
+create extension if not exists pg_net with schema extensions;
+
+-- 2. Drop existing objects (safe to re-run)
+DROP TABLE IF EXISTS public.messages CASCADE;
+DROP TABLE IF EXISTS public.conversations CASCADE;
+DROP FUNCTION IF EXISTS public.notify_chat_on_message;
+
+-- 3. Conversations
 CREATE TABLE conversations (
   id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   car_id          BIGINT REFERENCES cars(id) ON DELETE CASCADE NOT NULL,
@@ -11,11 +20,11 @@ CREATE TABLE conversations (
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_conversations_renter ON conversations(renter_id);
-CREATE INDEX idx_conversations_owner ON conversations(owner_id);
-CREATE INDEX idx_conversations_car ON conversations(car_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_renter ON conversations(renter_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_owner ON conversations(owner_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_car ON conversations(car_id);
 
--- Messages within conversations
+-- 4. Messages
 CREATE TABLE messages (
   id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   conversation_id BIGINT REFERENCES conversations(id) ON DELETE CASCADE NOT NULL,
@@ -26,27 +35,21 @@ CREATE TABLE messages (
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_messages_conversation ON messages(conversation_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, created_at);
 
--- Enable RLS
+-- 5. Enable RLS
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
 -- Conversations RLS
 CREATE POLICY "conversations_select_participant" ON conversations
-  FOR SELECT USING (
-    auth.uid() = renter_id OR auth.uid() = owner_id
-  );
+  FOR SELECT USING (auth.uid() = renter_id OR auth.uid() = owner_id);
 
 CREATE POLICY "conversations_insert_participant" ON conversations
-  FOR INSERT WITH CHECK (
-    auth.uid() = renter_id OR auth.uid() = owner_id
-  );
+  FOR INSERT WITH CHECK (auth.uid() = renter_id OR auth.uid() = owner_id);
 
 CREATE POLICY "conversations_update_last_message" ON conversations
-  FOR UPDATE USING (
-    auth.uid() = renter_id OR auth.uid() = owner_id
-  );
+  FOR UPDATE USING (auth.uid() = renter_id OR auth.uid() = owner_id);
 
 -- Messages RLS
 CREATE POLICY "messages_select_participant" ON messages
@@ -70,16 +73,18 @@ CREATE POLICY "messages_insert_participant" ON messages
 CREATE POLICY "messages_update_own" ON messages
   FOR UPDATE USING (sender_id = auth.uid());
 
--- Storage bucket for chat attachments
+-- 6. Storage bucket for chat attachments
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('chat-attachments', 'chat-attachments', false, 5242880, '{"image/png","image/jpeg","image/webp","image/heic","image/heif","application/pdf"}')
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "chat_attachments_select_participant" ON storage.objects;
+DROP POLICY IF EXISTS "chat_attachments_insert_own" ON storage.objects;
+DROP POLICY IF EXISTS "chat_attachments_update_own" ON storage.objects;
+DROP POLICY IF EXISTS "chat_attachments_delete_own" ON storage.objects;
+
 CREATE POLICY "chat_attachments_select_participant" ON storage.objects
-  FOR SELECT USING (
-    bucket_id = 'chat-attachments'
-    AND auth.role() = 'authenticated'
-  );
+  FOR SELECT USING (bucket_id = 'chat-attachments' AND auth.role() = 'authenticated');
 
 CREATE POLICY "chat_attachments_insert_own" ON storage.objects
   FOR INSERT WITH CHECK (
@@ -102,13 +107,10 @@ CREATE POLICY "chat_attachments_delete_own" ON storage.objects
     AND (storage.foldername(name))[1] = auth.uid()::text
   );
 
--- Enable Realtime for messages
+-- 7. Enable Realtime for messages
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 
--- Habilitar pg_net para HTTP requests async
--- create extension if not exists pg_net with schema extensions;
-
--- Trigger function: llama a Edge Function via pg_net cuando se inserta un mensaje
+-- 8. Trigger function: calls Edge Function via pg_net on message insert
 create or replace function public.notify_chat_on_message()
 returns trigger
 language plpgsql
@@ -135,14 +137,13 @@ begin
 end;
 $$;
 
--- Trigger en messages
 create trigger notify_chat_trigger
 after insert on public.messages
 for each row
 execute function public.notify_chat_on_message();
 
--- Push notification tokens
-CREATE TABLE push_tokens (
+-- 9. Push notification tokens
+CREATE TABLE IF NOT EXISTS push_tokens (
   id        BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   user_id   UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   token     TEXT NOT NULL,
@@ -150,9 +151,13 @@ CREATE TABLE push_tokens (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_push_tokens_user ON push_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id);
 
 ALTER TABLE push_tokens ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "push_tokens_insert_own" ON push_tokens;
+DROP POLICY IF EXISTS "push_tokens_select_own" ON push_tokens;
+DROP POLICY IF EXISTS "push_tokens_delete_own" ON push_tokens;
 
 CREATE POLICY "push_tokens_insert_own" ON push_tokens
   FOR INSERT WITH CHECK (auth.uid() = user_id);

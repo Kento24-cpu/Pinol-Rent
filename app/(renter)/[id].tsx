@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { View, ScrollView, StyleSheet, ActivityIndicator, Linking, Image, TouchableOpacity } from 'react-native'
+import { View, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native'
 import { Text, Button, Surface, Chip, Icon, Snackbar, useTheme } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -146,30 +146,22 @@ export default function CarDetailScreen() {
               </View>
             </View>
 
-            {car.profile?.phone ? (
-              <Button
-                mode="contained"
-                icon="phone"
-                style={styles.contactBtn}
-                contentStyle={styles.contactBtnContent}
-                onPress={() => Linking.openURL(`tel:${car.profile!.phone}`)}
-              >
-                Llamar a {car.profile.phone}
-              </Button>
-            ) : null}
-
             <Button
-              mode="outlined"
+              mode="contained"
               icon="forum"
               style={styles.contactBtn}
               contentStyle={styles.contactBtnContent}
               onPress={async () => {
                 if (!car) return
+                if (!userId) {
+                  setSnackbar({ visible: true, message: 'Debes iniciar sesión para enviar mensajes' })
+                  return
+                }
                 try {
-                  const convId = await findOrCreateConversation(car.id, car.owner_id, userId!)
+                  const convId = await findOrCreateConversation(car.id, car.owner_id, userId, car.profile?.full_name || undefined)
                   router.push(`/(renter)/conversations/${convId}`)
-                } catch {
-                  setSnackbar({ visible: true, message: 'Error al iniciar conversación' })
+                } catch (e) {
+                  setSnackbar({ visible: true, message: (e as Error).message })
                 }
               }}
             >

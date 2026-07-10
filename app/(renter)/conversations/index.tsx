@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native'
-import { Text, Card, Searchbar, useTheme, Icon, Avatar } from 'react-native-paper'
+import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge } from 'react-native-paper'
 import { router, useFocusEffect } from 'expo-router'
 import { useConversations } from '../../../src/hooks/useConversations'
 
@@ -52,11 +52,18 @@ export default function RenterConversationsScreen() {
           <TouchableOpacity onPress={() => router.push(`/(renter)/conversations/${item.id}`)}>
             <Card style={styles.card} mode="elevated" elevation={1}>
               <View style={styles.row}>
-                {item.owner?.avatar_url ? (
-                  <Avatar.Image size={48} source={{ uri: item.owner.avatar_url }} />
-                ) : (
-                  <Avatar.Text size={48} label={(item.owner?.full_name?.[0] ?? '?').toUpperCase()} />
-                )}
+                <View>
+                  {item.owner?.avatar_url ? (
+                    <Avatar.Image size={48} source={{ uri: item.owner.avatar_url }} />
+                  ) : (
+                    <Avatar.Text size={48} label={(item.owner?.full_name?.[0] ?? '?').toUpperCase()} />
+                  )}
+                  {!!item.unread_count && (
+                    <Badge size={18} style={styles.badge}>
+                      {item.unread_count}
+                    </Badge>
+                  )}
+                </View>
                 <View style={styles.content}>
                   <View style={styles.topRow}>
                     <Text variant="titleSmall" style={{ fontWeight: 'bold', flex: 1 }} numberOfLines={1}>
@@ -98,4 +105,5 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   emptyContainer: { flex: 1 },
+  badge: { position: 'absolute', top: -4, right: -4 },
 })

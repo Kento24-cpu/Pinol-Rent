@@ -29,6 +29,7 @@ export interface ConversationWithLatest {
   renter: { full_name: string; avatar_url: string | null } | null
   owner: { full_name: string; avatar_url: string | null } | null
   latest_message: { content: string; created_at: string | null; sender_id: string } | null
+  unread_count?: number
 }
 
 export interface MessageWithSender {

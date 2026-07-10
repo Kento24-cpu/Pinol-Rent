@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
+import { View } from 'react-native'
 import { Drawer } from 'expo-router/drawer'
 import { router } from 'expo-router'
-import { Icon, useTheme } from 'react-native-paper'
+import { Icon, Badge, useTheme } from 'react-native-paper'
 import { useAuthStore } from '../../src/stores/authStore'
+import { useChatStore } from '../../src/stores/chatStore'
 import { AppDrawerContent } from '../../src/components/AppDrawerContent'
 
 export default function RenterLayout() {
@@ -10,6 +12,7 @@ export default function RenterLayout() {
   const session = useAuthStore((s) => s.session)
   const role = useAuthStore((s) => s.role)
   const initialized = useAuthStore((s) => s.initialized)
+  const unreadTotal = useChatStore((s) => s.unreadTotal)
 
   useEffect(() => {
     if (!initialized) return
@@ -52,7 +55,12 @@ export default function RenterLayout() {
         options={{
           title: 'Mensajes',
           drawerLabel: 'Mensajes',
-          drawerIcon: ({ color }) => <Icon source="forum" size={22} color={color as string} />,
+          drawerIcon: ({ color }) => (
+            <View>
+              <Icon source="forum" size={22} color={color as string} />
+              {unreadTotal > 0 && <Badge size={16} style={{ position: 'absolute', top: -6, right: -6 }}>{unreadTotal}</Badge>}
+            </View>
+          ),
         }}
       />
       <Drawer.Screen

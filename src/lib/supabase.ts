@@ -1,6 +1,5 @@
 import 'react-native-url-polyfill/auto'
 import { createClient } from '@supabase/supabase-js'
-import * as SecureStore from 'expo-secure-store'
 import { Platform } from 'react-native'
 import type { Database } from '../types/database'
 
@@ -11,19 +10,47 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env')
 }
 
-const nativeStorage = {
-  getItem: (key: string) => SecureStore.getItemAsync(key),
-  setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
-  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+interface StorageAdapter {
+  getItem(key: string): Promise<string | null> | string | null
+  setItem(key: string, value: string): Promise<void> | void
+  removeItem(key: string): Promise<void> | void
 }
 
-const webStorage = typeof localStorage !== 'undefined' ? localStorage : undefined
+function createFallbackStorage(): StorageAdapter {
+  const store = new Map<string, string>()
+  return {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => { store.set(key, value) },
+    removeItem: (key: string) => { store.delete(key) },
+  }
+}
 
-const storage = Platform.OS === 'web' ? webStorage : nativeStorage
+function createStorage(): StorageAdapter {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage !== 'undefined') return localStorage
+    return createFallbackStorage()
+  }
+
+  try {
+    const SecureStore = require('expo-secure-store') as {
+      getItemAsync(key: string): Promise<string | null>
+      setItemAsync(key: string, value: string): Promise<void>
+      deleteItemAsync(key: string): Promise<void>
+    }
+    return {
+      getItem: (key: string) => SecureStore.getItemAsync(key),
+      setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+      removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+    }
+  } catch {
+    console.warn('[Supabase] expo-secure-store unavailable, using in-memory storage (session lost on restart)')
+    return createFallbackStorage()
+  }
+}
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: storage as never,
+    storage: createStorage(),
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

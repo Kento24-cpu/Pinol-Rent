@@ -4,6 +4,7 @@ import { Text, IconButton, useTheme, ActivityIndicator, Avatar, Icon } from 'rea
 import * as ImagePicker from 'expo-image-picker'
 import { useChat } from '../hooks/useChat'
 import { useAuthStore } from '../stores/authStore'
+import { useChatStore } from '../stores/chatStore'
 
 interface ChatScreenProps {
   conversationId: number
@@ -13,16 +14,28 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
   const { colors } = useTheme()
   const userId = useAuthStore((s) => s.session?.user?.id)
   const { messages, loading, sending, sendMessage, markAsRead } = useChat(conversationId)
+  const clearUnread = useChatStore((s) => s.clearUnreadForConversation)
   const [input, setInput] = useState('')
   const flatListRef = useRef<FlatList>(null)
+  const inputRef = useRef<RNTextInput>(null)
 
-  useEffect(() => { markAsRead() }, [messages, markAsRead])
+  useEffect(() => {
+    markAsRead()
+    clearUnread(conversationId)
+  }, [messages, conversationId, markAsRead, clearUnread])
 
   const handleSend = async () => {
     const text = input.trim()
     if (!text) return
     setInput('')
     try { await sendMessage(text) } catch { /* parent handles snackbar */ }
+  }
+
+  const handleKeyPress = (e: any) => {
+    if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+      if (Platform.OS === 'web') e.preventDefault()
+      handleSend()
+    }
   }
 
   const handleAttach = async () => {
@@ -49,7 +62,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
     return (
       <View style={[styles.msgRow, isOwn ? styles.msgOwn : styles.msgOther]}>
         {!isOwn && (
-          <View style={styles.avatarCol}>
+          <View style={[styles.avatarCol, styles.avatarLeft]}>
             {item.sender?.avatar_url ? (
               <Avatar.Image size={28} source={{ uri: item.sender.avatar_url }} />
             ) : (
@@ -57,7 +70,12 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
             )}
           </View>
         )}
-        <View style={[styles.bubble, { backgroundColor: isOwn ? colors.primary : colors.surfaceVariant }]}>
+        <View style={[
+          styles.bubble,
+          { backgroundColor: isOwn ? colors.primary : colors.surface },
+          isOwn ? styles.bubbleOwn : styles.bubbleOther,
+          !isOwn && { borderWidth: 1, borderColor: colors.outline },
+        ]}>
           {item.attachment_url && (
             <View style={styles.attachment}>
               <Icon source="image" size={16} color={isOwn ? colors.onPrimary : colors.onSurfaceVariant} />
@@ -74,6 +92,15 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
             </Text>
           </View>
         </View>
+        {isOwn && (
+          <View style={[styles.avatarCol, styles.avatarRight]}>
+            {item.sender?.avatar_url ? (
+              <Avatar.Image size={28} source={{ uri: item.sender.avatar_url }} />
+            ) : (
+              <Avatar.Text size={28} label={(item.sender?.full_name?.[0] ?? '?').toUpperCase()} />
+            )}
+          </View>
+        )}
       </View>
     )
   }
@@ -111,9 +138,11 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
       <View style={[styles.inputBar, { backgroundColor: colors.surface }]}>
         <IconButton icon="paperclip" size={22} onPress={handleAttach} disabled={sending} />
         <RNTextInput
+          ref={inputRef}
           value={input}
           onChangeText={setInput}
-          placeholder="Escribe un mensaje..."
+          onKeyPress={handleKeyPress}
+          placeholder="Escribe un mensaje...  (Enter enviar)"
           style={[styles.input, { backgroundColor: colors.surfaceVariant, color: colors.onSurface }]}
           multiline
           editable={!sending}
@@ -137,11 +166,18 @@ const styles = StyleSheet.create({
   msgRow: { marginVertical: 3, flexDirection: 'row', alignItems: 'flex-end' },
   msgOwn: { justifyContent: 'flex-end' },
   msgOther: { justifyContent: 'flex-start' },
-  avatarCol: { marginRight: 6, marginBottom: 4 },
+  avatarCol: { marginBottom: 4 },
+  avatarLeft: { marginRight: 6 },
+  avatarRight: { marginLeft: 6 },
   bubble: {
     maxWidth: '72%',
     padding: 10,
     borderRadius: 16,
+  },
+  bubbleOwn: {
+    borderBottomRightRadius: 4,
+  },
+  bubbleOther: {
     borderBottomLeftRadius: 4,
   },
   attachment: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },

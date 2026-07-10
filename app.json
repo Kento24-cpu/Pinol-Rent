@@ -10,7 +10,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.pinolrent",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -43,6 +45,13 @@
           "color": "#1565C0"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9992859f-c44d-4552-b461-020091d7c156"
+      }
+    },
+    "owner": "kevin24"
   }
 }
