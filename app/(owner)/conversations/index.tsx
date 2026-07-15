@@ -1,21 +1,27 @@
 import { useState, useCallback } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native'
 import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge } from 'react-native-paper'
-import { router, useFocusEffect } from 'expo-router'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useConversations } from '../../../src/hooks/useConversations'
 
 export default function OwnerConversationsScreen() {
+  const { carId: carIdParam } = useLocalSearchParams<{ carId?: string }>()
   const { colors } = useTheme()
   const { conversations, loading, refetch } = useConversations()
   const [search, setSearch] = useState('')
 
   useFocusEffect(useCallback(() => { refetch() }, [refetch]))
 
-  const filtered = search.trim()
-    ? conversations.filter((c) =>
+  const filtered = (() => {
+    const carIdNum = carIdParam ? Number(carIdParam) : null
+    let result = carIdNum ? conversations.filter((c) => c.car_id === carIdNum) : conversations
+    if (search.trim()) {
+      result = result.filter((c) =>
         `${c.car?.brand ?? ''} ${c.car?.model ?? ''} ${c.renter?.full_name ?? ''}`
           .toLowerCase().includes(search.toLowerCase()))
-    : conversations
+    }
+    return result
+  })()
 
   if (loading) {
     return (

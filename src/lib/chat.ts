@@ -9,11 +9,13 @@ async function ensureProfile(userId: string, fullName?: string): Promise<void> {
 
   if (existing) return
 
+  let role: string | null = null
   if (!fullName) {
     const { data: { user } } = await supabase.auth.getUser()
     if (user?.id === userId) {
       const meta = user.user_metadata
       fullName = (meta?.full_name as string) ?? user.email?.split('@')[0] ?? 'Usuario'
+      role = (meta?.role as string) ?? null
     } else {
       fullName = 'Usuario'
     }
@@ -22,7 +24,7 @@ async function ensureProfile(userId: string, fullName?: string): Promise<void> {
   const { error } = await supabase.from('profiles').insert({
     id: userId,
     full_name: fullName,
-    role: 'renter',
+    role: (role as 'owner' | 'renter') ?? 'renter',
   })
 
   if (error && !error.message.includes('duplicate key')) {
@@ -55,8 +57,22 @@ export async function findOrCreateConversation(
     .from('conversations')
     .insert({ car_id: carId, renter_id: renterId, owner_id: ownerId })
     .select('id')
-    .single()
+    .maybeSingle()
 
-  if (error || !newConv) throw new Error(error?.message ?? 'Failed to create conversation')
-  return newConv.id
+  if (newConv) return newConv.id
+
+  if (error && !error.message.includes('duplicate key')) {
+    throw new Error(error.message)
+  }
+
+  const { data: existing2 } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('car_id', carId)
+    .eq('renter_id', renterId)
+    .eq('owner_id', ownerId)
+    .maybeSingle()
+
+  if (existing2) return existing2.id
+  throw new Error('Failed to create conversation')
 }

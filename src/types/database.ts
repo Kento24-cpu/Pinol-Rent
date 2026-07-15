@@ -49,6 +49,7 @@ export type Database = {
           start_date: string
           status: string | null
           total_price: number
+          unit_price: number | null
         }
         Insert: {
           car_id: number
@@ -59,6 +60,7 @@ export type Database = {
           start_date: string
           status?: string | null
           total_price: number
+          unit_price?: number | null
         }
         Update: {
           car_id?: number
@@ -69,6 +71,7 @@ export type Database = {
           start_date?: string
           status?: string | null
           total_price?: number
+          unit_price?: number | null
         }
         Relationships: [
           {
@@ -250,6 +253,7 @@ export type Database = {
       cars: {
         Row: {
           available: boolean | null
+          avg_rating: number | null
           brand: string
           color: string | null
           created_at: string | null
@@ -261,10 +265,12 @@ export type Database = {
           model: string
           owner_id: string
           price_per_day: number
+          reviews_count: number | null
           year: number
         }
         Insert: {
           available?: boolean | null
+          avg_rating?: number | null
           brand: string
           color?: string | null
           created_at?: string | null
@@ -276,10 +282,12 @@ export type Database = {
           model: string
           owner_id: string
           price_per_day: number
+          reviews_count?: number | null
           year: number
         }
         Update: {
           available?: boolean | null
+          avg_rating?: number | null
           brand?: string
           color?: string | null
           created_at?: string | null
@@ -291,6 +299,7 @@ export type Database = {
           model?: string
           owner_id?: string
           price_per_day?: number
+          reviews_count?: number | null
           year?: number
         }
         Relationships: [
@@ -376,12 +385,110 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          id: number
+          booking_id: number
+          car_id: number
+          renter_id: string
+          rating: number
+          comment: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: never
+          booking_id: number
+          car_id: number
+          renter_id: string
+          rating: number
+          comment?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: never
+          booking_id?: number
+          car_id?: number
+          renter_id?: string
+          rating?: number
+          comment?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_car_id_fkey"
+            columns: ["car_id"]
+            isOneToOne: false
+            referencedRelation: "cars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_renter_id_fkey"
+            columns: ["renter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_prefs: {
+        Row: {
+          user_id: string
+          chat_push: boolean
+          booking_push: boolean
+          marketing: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          user_id: string
+          chat_push?: boolean
+          booking_push?: boolean
+          marketing?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          user_id?: string
+          chat_push?: boolean
+          booking_push?: boolean
+          marketing?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_prefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_car_available: {
+        Args: {
+          p_car_id: number
+          p_start_date: string
+          p_end_date: string
+          p_exclude_booking_id?: number
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       user_role: "owner" | "renter"

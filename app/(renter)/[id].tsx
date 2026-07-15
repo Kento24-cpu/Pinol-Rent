@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { findOrCreateConversation } from '../../src/lib/chat'
+import { useReviews } from '../../src/hooks/useReviews'
+import { ReviewCard } from '../../src/components/ReviewCard'
 import type { CarWithRelations } from '../../src/types/database.types'
 
 export default function CarDetailScreen() {
@@ -13,6 +15,7 @@ export default function CarDetailScreen() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const userId = useAuthStore((s) => s.session?.user?.id)
+  const { reviews, fetchCarReviews } = useReviews()
   const [car, setCar] = useState<CarWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
@@ -36,7 +39,8 @@ export default function CarDetailScreen() {
         if (data) setCar(data as unknown as CarWithRelations)
         setLoading(false)
       })
-  }, [carId])
+    fetchCarReviews(carId)
+  }, [carId, fetchCarReviews])
 
   if (loading) {
     return (
@@ -89,9 +93,20 @@ export default function CarDetailScreen() {
           {car.year} · {car.color || 'Color no especificado'}
         </Text>
 
-        <Text variant="headlineMedium" style={[styles.price, { color: colors.primary }]}>
-          ${car.price_per_day} <Text variant="bodyMedium">/ día</Text>
-        </Text>
+          <Text variant="headlineMedium" style={[styles.price, { color: colors.primary }]}>
+            ${car.price_per_day} <Text variant="bodyMedium">/ día</Text>
+          </Text>
+
+              {(car.reviews_count ?? 0) > 0 && (
+            <View style={styles.ratingRow}>
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Icon key={s} source={s <= Math.round(car.avg_rating ?? 0) ? 'star' : 'star-outline'} size={18} color={'#FFB300'} />
+              ))}
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginLeft: 6 }}>
+                {Number(car.avg_rating).toFixed(1)} ({(car.reviews_count ?? 0)} reseña{(car.reviews_count ?? 0) > 1 ? 's' : ''})
+              </Text>
+            </View>
+          )}
 
         {car.description && (
           <Text variant="bodyMedium" style={{ marginTop: 16, lineHeight: 22 }}>
@@ -148,8 +163,18 @@ export default function CarDetailScreen() {
 
             <Button
               mode="contained"
-              icon="forum"
+              icon="calendar"
               style={styles.contactBtn}
+              contentStyle={styles.contactBtnContent}
+              onPress={() => router.push(`/(renter)/book/${carId}`)}
+            >
+              Reservar
+            </Button>
+
+            <Button
+              mode="outlined"
+              icon="forum"
+              style={[styles.contactBtn, { marginTop: 8 }]}
               contentStyle={styles.contactBtnContent}
               onPress={async () => {
                 if (!car) return
@@ -167,6 +192,23 @@ export default function CarDetailScreen() {
             >
               Enviar mensaje
             </Button>
+          </>
+        )}
+
+        {reviews.length > 0 && (
+          <>
+            <View style={[styles.divider, { backgroundColor: colors.outline }]} />
+            <Text variant="titleSmall" style={styles.sectionTitle}>Reseñas</Text>
+            {reviews.map((r) => (
+              <ReviewCard
+                key={r.id}
+                rating={r.rating}
+                comment={r.comment}
+                createdAt={r.created_at}
+                renterName={r.renter?.full_name ?? 'Anónimo'}
+                renterAvatar={r.renter?.avatar_url ?? null}
+              />
+            ))}
           </>
         )}
       </Surface>
@@ -191,6 +233,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginLeft: 8 },
   price: { fontWeight: 'bold' },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   infoSection: { marginTop: 20, gap: 8 },
   infoRow: { flexDirection: 'row', alignItems: 'center' },
   sectionTitle: { fontWeight: 'bold', marginTop: 20, marginBottom: 8 },

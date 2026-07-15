@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../lib/supabase'
 import { uriToBlob } from '../lib/upload'
 import { useAuthStore } from '../stores/authStore'
+import type { Database } from '../types/database'
 
 interface ProfileScreenProps {
   showBusinessName?: boolean
@@ -96,10 +97,10 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
       return
     }
 
-    await supabase.storage.from('car-images').remove([`${user.id}/avatar`])
+    await supabase.storage.from('avatars').remove([`${user.id}/avatar`])
 
     const { data, error } = await supabase.storage
-      .from('car-images')
+      .from('avatars')
       .upload(`${user.id}/avatar`, blob, { contentType: file.mimeType ?? 'image/jpeg', upsert: true })
 
     if (error) {
@@ -108,31 +109,31 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
       return
     }
 
-    const { data: { publicUrl } } = supabase.storage.from('car-images').getPublicUrl(data.path)
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(data.path)
     setAvatarUrl(`${publicUrl}?t=${Date.now()}`)
     setUploading(false)
   }
 
   const removeAvatar = () => {
-    if (user) {
-      supabase.storage.from('car-images').remove([`${user.id}/avatar`])
-    }
     setAvatarUrl('')
   }
 
   const onSubmit = async (form: ProfileForm) => {
     if (!user || !profile) return
-    const update: Record<string, string | null> = {
+    const update: Database['public']['Tables']['profiles']['Update'] = {
       full_name: form.fullName,
       phone: form.phone || null,
       avatar_url: avatarUrl || null,
     }
     if (showBusinessName) update.business_name = form.businessName || null
 
-    const { error } = await supabase.from('profiles').update(update as never).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update(update).eq('id', user.id)
     if (error) {
       setSnackbar({ visible: true, message: error.message })
     } else {
+      if (profile.avatarUrl && !avatarUrl) {
+        supabase.storage.from('avatars').remove([`${user.id}/avatar`]).catch(() => {})
+      }
       await supabase.auth.updateUser({
         data: {
           full_name: form.fullName,

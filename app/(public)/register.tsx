@@ -1,6 +1,6 @@
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
 import { Text, TextInput, Button, Surface, SegmentedButtons, useTheme } from 'react-native-paper'
-import { Link, router } from 'expo-router'
+import { Link } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -38,7 +38,7 @@ export default function RegisterScreen() {
     }
 
     if (data.session) {
-      router.replace(role === 'owner' ? '/(owner)' : '/(renter)')
+      // Navigation handled by index.tsx via auth store
     } else {
       setError('root', { message: `Revisa tu correo ${email} — te enviamos un enlace de confirmación.` })
     }

@@ -14,12 +14,7 @@ async function fetchProfileWithRetry(userId: string, retries = 3, delay = 500): 
     if (profile?.role) return profile.role as 'owner' | 'renter'
     if (i < retries - 1) await new Promise((r) => setTimeout(r, delay))
   }
-  const { data: fallback } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', userId)
-    .single()
-  return (fallback?.role ?? null) as 'owner' | 'renter' | null
+  return null
 }
 
 function forceInitialized() {

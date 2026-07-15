@@ -19,7 +19,7 @@ export function useChat(conversationId: number | null) {
       .select('*, sender:sender_id(full_name, avatar_url)')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true })
-    if (gen !== genRef.current) return
+    if (gen !== genRef.current) { setLoading(false); return }
     if (data) setMessages(data as unknown as MessageWithSender[])
     setLoading(false)
   }, [conversationId, user])
@@ -30,14 +30,29 @@ export function useChat(conversationId: number | null) {
     fetchMessages()
   }, [fetchMessages])
 
+  const senderCache = useRef<Record<string, { full_name: string; avatar_url: string | null }>>({})
+
   useEffect(() => {
     if (!conversationId) return
+    senderCache.current = {}
     const channel = supabase
       .channel(`chat-${conversationId}`)
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
-        (payload) => {
-          const newMsg = payload.new as MessageWithSender
+        async (payload) => {
+          const raw = payload.new as MessageWithSender
+          if (!senderCache.current[raw.sender_id]) {
+            const { data: sender } = await supabase
+              .from('profiles')
+              .select('full_name, avatar_url')
+              .eq('id', raw.sender_id)
+              .single()
+            senderCache.current[raw.sender_id] = sender ?? { full_name: '', avatar_url: null }
+          }
+          const newMsg: MessageWithSender = {
+            ...raw,
+            sender: senderCache.current[raw.sender_id],
+          }
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev
             return [...prev, newMsg]
@@ -61,8 +76,8 @@ export function useChat(conversationId: number | null) {
         .from('chat-attachments')
         .upload(path, blob, { contentType: attachment.mimeType })
       if (uploadError) { setSending(false); throw uploadError }
-      const { data: { publicUrl } } = supabase.storage.from('chat-attachments').getPublicUrl(uploadData.path)
-      attachmentUrl = publicUrl
+      const { data: signedData } = await supabase.storage.from('chat-attachments').createSignedUrl(uploadData.path, 7 * 24 * 60 * 60)
+      attachmentUrl = signedData?.signedUrl ?? ''
     }
 
     await supabase.from('messages').insert({

@@ -159,7 +159,8 @@ export default function EditCarScreen() {
 
     if (carError) { setError('root', { message: carError.message }); return }
 
-    await supabase.from('car_tags').delete().eq('car_id', carId)
+    const { error: deleteTagsError } = await supabase.from('car_tags').delete().eq('car_id', carId)
+    if (deleteTagsError) { setError('root', { message: deleteTagsError.message }); return }
 
     if (selectedTags.length > 0) {
       const { error: tagsError } = await supabase.from('car_tags').insert(

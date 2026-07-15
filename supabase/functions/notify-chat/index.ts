@@ -24,10 +24,14 @@ serve(async (req) => {
     return new Response('bad payload', { status: 400 })
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+    return new Response('server config error', { status: 500 })
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey)
 
   const { data: conv } = await supabase
     .from('conversations')

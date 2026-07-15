@@ -11,7 +11,10 @@ const palette = {
   neutral50: '#F5F7FA',
   success: '#2E7D32',
   error: '#C62828',
+  rating: '#FFB300',
 }
+
+export const RATING_COLOR = palette.rating
 
 export const theme = {
   ...MD3LightTheme,

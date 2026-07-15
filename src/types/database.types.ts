@@ -11,6 +11,8 @@ export interface CarWithRelations {
   available: boolean | null
   department_id: number | null
   owner_id: string
+  avg_rating: number | null
+  reviews_count: number | null
   created_at: string | null
   department: { name: string } | null
   profile: { full_name: string; business_name: string | null; phone: string | null } | null
@@ -30,6 +32,32 @@ export interface ConversationWithLatest {
   owner: { full_name: string; avatar_url: string | null } | null
   latest_message: { content: string; created_at: string | null; sender_id: string } | null
   unread_count?: number
+}
+
+export interface BookingWithRelations {
+  id: number
+  car_id: number
+  renter_id: string
+  start_date: string
+  end_date: string
+  total_price: number
+  unit_price: number | null
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  created_at: string | null
+  car: { brand: string; model: string; image_url: string | null; price_per_day: number } | null
+  renter: { full_name: string; avatar_url: string | null } | null
+  owner?: { full_name: string; avatar_url: string | null } | null
+}
+
+export interface ReviewWithRelations {
+  id: number
+  booking_id: number
+  car_id: number
+  renter_id: string
+  rating: number
+  comment: string | null
+  created_at: string | null
+  renter: { full_name: string; avatar_url: string | null } | null
 }
 
 export interface MessageWithSender {

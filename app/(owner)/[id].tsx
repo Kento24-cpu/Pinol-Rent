@@ -43,6 +43,7 @@ export default function OwnerCarDetailScreen() {
 
   const toggleAvailability = async () => {
     if (!car || !user) return
+    if (car.owner_id !== user.id) { setSnackbar({ visible: true, message: 'No tienes permiso para modificar este auto' }); return }
     setUpdating(true)
     const { error } = await supabase.from('cars').update({ available: !car.available }).eq('id', car.id)
     if (error) {
@@ -56,6 +57,8 @@ export default function OwnerCarDetailScreen() {
 
   const handleDelete = async () => {
     setShowDeleteDialog(false)
+    if (!user || !car) return
+    if (car.owner_id !== user.id) { setSnackbar({ visible: true, message: 'No tienes permiso para eliminar este auto' }); return }
     setUpdating(true)
     const { error } = await supabase.from('cars').delete().eq('id', carId)
     setUpdating(false)
@@ -159,7 +162,7 @@ export default function OwnerCarDetailScreen() {
               icon="forum"
               style={styles.editBtn}
               contentStyle={styles.btnContent}
-              onPress={() => router.push('/(owner)/conversations')}
+              onPress={() => router.push({ pathname: '/(owner)/conversations', params: { carId: String(carId) } })}
             >
               Ver mensajes
             </Button>

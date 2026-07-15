@@ -24,6 +24,9 @@ CREATE INDEX IF NOT EXISTS idx_conversations_renter ON conversations(renter_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_owner ON conversations(owner_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_car ON conversations(car_id);
 
+-- Prevent duplicate conversations (race condition guard)
+ALTER TABLE conversations ADD CONSTRAINT IF NOT EXISTS conversations_unique_participants UNIQUE (car_id, renter_id, owner_id);
+
 -- 4. Messages
 CREATE TABLE messages (
   id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -111,15 +114,30 @@ CREATE POLICY "chat_attachments_delete_own" ON storage.objects
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 
 -- 8. Trigger function: calls Edge Function via pg_net on message insert
+-- Reads service key from Supabase custom config parameters.
+-- Set these before applying via:
+--   ALTER DATABASE postgres SET "app.settings.supabase_url" TO 'https://<project>.supabase.co';
+--   ALTER DATABASE postgres SET "app.settings.service_role_key" TO '<service-role-jwt>';
 create or replace function public.notify_chat_on_message()
 returns trigger
 language plpgsql
 security definer
 set search_path = extensions, public, pg_temp
 as $$
+declare
+  supabase_url text;
+  service_key text;
 begin
+  supabase_url := current_setting('app.settings.supabase_url', true);
+  service_key := current_setting('app.settings.service_role_key', true);
+
+  if supabase_url is null or service_key is null then
+    raise warning 'app.settings.supabase_url or app.settings.service_role_key not set — skipping push';
+    return new;
+  end if;
+
   perform net.http_post(
-    url := 'https://rqmobdrdkftdepqrdymo.supabase.co/functions/v1/notify-chat',
+    url := supabase_url || '/functions/v1/notify-chat',
     body := jsonb_build_object(
       'type', 'INSERT',
       'table', 'messages',
@@ -129,7 +147,7 @@ begin
     ),
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxbW9iZHJka2Z0ZGVwcXJkeW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mjc1MzE5OSwiZXhwIjoyMDk4MzI5MTk5fQ.HIj53YrICSTYMSUxKtAHA_G1H1h4fwHXM53L80Uj_Dw'
+      'Authorization', 'Bearer ' || service_key
     ),
     timeout_milliseconds := 2000
   );

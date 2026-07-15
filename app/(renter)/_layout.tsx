@@ -6,6 +6,7 @@ import { Icon, Badge, useTheme } from 'react-native-paper'
 import { useAuthStore } from '../../src/stores/authStore'
 import { useChatStore } from '../../src/stores/chatStore'
 import { AppDrawerContent } from '../../src/components/AppDrawerContent'
+import { OfflineBanner } from '../../src/components/OfflineBanner'
 
 export default function RenterLayout() {
   const { colors } = useTheme()
@@ -16,13 +17,15 @@ export default function RenterLayout() {
 
   useEffect(() => {
     if (!initialized) return
-    if (!session) router.replace('/login')
+    if (!session) router.replace('/(public)/login')
     else if (role === 'owner') router.replace('/(owner)')
   }, [session, role, initialized])
 
   return (
-    <Drawer
-      drawerContent={(props) => <AppDrawerContent {...props} />}
+    <>
+      <OfflineBanner />
+      <Drawer
+        drawerContent={(props) => <AppDrawerContent {...props} />}
       screenOptions={{
         drawerActiveTintColor: colors.primary,
         drawerInactiveTintColor: colors.onSurfaceVariant,
@@ -51,6 +54,28 @@ export default function RenterLayout() {
         }}
       />
       <Drawer.Screen
+        name="book/[carId]"
+        options={{
+          title: 'Reservar auto',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
+        name="bookings/index"
+        options={{
+          title: 'Mis reservas',
+          drawerLabel: 'Mis reservas',
+          drawerIcon: ({ color }) => <Icon source="calendar" size={22} color={color as string} />,
+        }}
+      />
+      <Drawer.Screen
+        name="bookings/[id]"
+        options={{
+          title: 'Detalle de reserva',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
         name="conversations/index"
         options={{
           title: 'Mensajes',
@@ -71,6 +96,14 @@ export default function RenterLayout() {
         }}
       />
       <Drawer.Screen
+        name="notifications"
+        options={{
+          title: 'Notificaciones',
+          drawerLabel: 'Notificaciones',
+          drawerIcon: ({ color }) => <Icon source="bell" size={22} color={color as string} />,
+        }}
+      />
+      <Drawer.Screen
         name="profile"
         options={{
           title: 'Mi perfil',
@@ -79,5 +112,6 @@ export default function RenterLayout() {
         }}
       />
     </Drawer>
+    </>
   )
 }

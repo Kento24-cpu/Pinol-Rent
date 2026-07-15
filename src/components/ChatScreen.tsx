@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
-import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TextInput as RNTextInput, Alert } from 'react-native'
-import { Text, IconButton, useTheme, ActivityIndicator, Avatar, Icon } from 'react-native-paper'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TextInput as RNTextInput, Alert, type NativeSyntheticEvent, type TextInputKeyPressEventData } from 'react-native'
+import { Text, IconButton, useTheme, ActivityIndicator, Avatar, Icon, Snackbar } from 'react-native-paper'
 import * as ImagePicker from 'expo-image-picker'
 import { useChat } from '../hooks/useChat'
 import { useAuthStore } from '../stores/authStore'
@@ -13,32 +13,33 @@ interface ChatScreenProps {
 export function ChatScreen({ conversationId }: ChatScreenProps) {
   const { colors } = useTheme()
   const userId = useAuthStore((s) => s.session?.user?.id)
+  const user = useAuthStore((s) => s.session?.user)
   const { messages, loading, sending, sendMessage, markAsRead } = useChat(conversationId)
   const clearUnread = useChatStore((s) => s.clearUnreadForConversation)
   const [input, setInput] = useState('')
+  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
   const flatListRef = useRef<FlatList>(null)
   const inputRef = useRef<RNTextInput>(null)
 
   useEffect(() => {
     markAsRead()
     clearUnread(conversationId)
-  }, [messages, conversationId, markAsRead, clearUnread])
+  }, [conversationId, markAsRead, clearUnread, user])
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     const text = input.trim()
     if (!text) return
     setInput('')
-    try { await sendMessage(text) } catch { /* parent handles snackbar */ }
-  }
+    try { await sendMessage(text) } catch (e) { setSnackbar({ visible: true, message: (e as Error).message }) }
+  }, [input, sendMessage])
 
-  const handleKeyPress = (e: any) => {
-    if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
-      if (Platform.OS === 'web') e.preventDefault()
+  const handleKeyPress = useCallback((e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+    if (e.nativeEvent.key === 'Enter') {
       handleSend()
     }
-  }
+  }, [handleSend])
 
-  const handleAttach = async () => {
+  const handleAttach = useCallback(async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
       Alert.alert('Permiso requerido', 'Habilita el acceso a tus fotos para enviar imágenes.')
@@ -53,10 +54,10 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
     setInput('')
     try {
       await sendMessage('', { uri: result.assets[0].uri, mimeType: result.assets[0].mimeType ?? 'image/jpeg' })
-    } catch { /* parent handles snackbar */ }
-  }
+    } catch (e) { setSnackbar({ visible: true, message: (e as Error).message }) }
+  }, [sendMessage])
 
-  const renderMessage = ({ item }: { item: typeof messages[number] }) => {
+  const renderMessage = useCallback(({ item }: { item: typeof messages[number] }) => {
     const isOwn = item.sender_id === userId
 
     return (
@@ -103,7 +104,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
         )}
       </View>
     )
-  }
+  }, [userId, colors])
 
   if (loading) {
     return (
@@ -135,8 +136,8 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
         }
         contentContainerStyle={messages.length === 0 ? styles.emptyContainer : styles.list}
       />
-      <View style={[styles.inputBar, { backgroundColor: colors.surface }]}>
-        <IconButton icon="paperclip" size={22} onPress={handleAttach} disabled={sending} />
+      <View style={[styles.inputBar, { backgroundColor: colors.surface, borderTopColor: colors.outline }]}>
+        <IconButton icon="paperclip" size={22} onPress={handleAttach} disabled={sending} accessibilityLabel="Adjuntar imagen" />
         <RNTextInput
           ref={inputRef}
           value={input}
@@ -153,8 +154,13 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
           iconColor={colors.primary}
           disabled={!input.trim() || sending}
           onPress={handleSend}
+          accessibilityLabel="Enviar mensaje"
         />
       </View>
+
+      <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
+        {snackbar.message}
+      </Snackbar>
     </KeyboardAvoidingView>
   )
 }

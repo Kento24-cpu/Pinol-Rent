@@ -1,5 +1,6 @@
 import { View, Image, StyleSheet } from 'react-native'
 import { Text, Card, Chip, Icon, useTheme } from 'react-native-paper'
+import { RATING_COLOR } from '../lib/theme'
 
 interface CarCardCar {
   id: number
@@ -12,6 +13,8 @@ interface CarCardCar {
   business_name: string | null
   owner_full_name: string
   tags: { name: string }[]
+  avg_rating: number
+  reviews_count: number
   image_url?: string | null
 }
 
@@ -58,6 +61,17 @@ export function CarCard({ car, onPress }: CarCardProps) {
           {car.brand} {car.model} {car.year}
         </Text>
 
+        {car.reviews_count > 0 && (
+          <View style={styles.ratingRow}>
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Icon key={s} source={s <= Math.round(car.avg_rating) ? 'star' : 'star-outline'} size={14} color={RATING_COLOR} />
+            ))}
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginLeft: 4 }}>
+              {car.avg_rating.toFixed(1)} ({car.reviews_count})
+            </Text>
+          </View>
+        )}
+
         <View style={styles.detailRow}>
           <Icon source="map-marker" size={16} color={colors.onSurfaceVariant} />
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginLeft: 4 }}>
@@ -95,6 +109,7 @@ const styles = StyleSheet.create({
   businessName: { fontWeight: 'bold', marginLeft: 6, flex: 1 },
   badge: { paddingHorizontal: 10, paddingVertical: 2, borderRadius: 20 },
   carName: { fontWeight: 'bold', marginBottom: 8 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   price: { fontWeight: 'bold', marginBottom: 8 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 4 },

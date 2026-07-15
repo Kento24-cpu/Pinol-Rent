@@ -140,13 +140,15 @@ export default function PublishScreen() {
       if (tagsError) { setError('root', { message: tagsError.message }); return }
     }
 
-    reset()
-    setDepartmentId(null)
-    setSelectedTags([])
-    setAvailable(true)
-    setImageUrl(null)
     setSnackbar({ visible: true, message: 'Auto publicado exitosamente' })
-    setTimeout(() => router.back(), 1500)
+    setTimeout(() => {
+      reset()
+      setDepartmentId(null)
+      setSelectedTags([])
+      setAvailable(true)
+      setImageUrl(null)
+      router.back()
+    }, 1500)
   }
 
   return (

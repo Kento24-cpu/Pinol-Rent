@@ -12,7 +12,7 @@ export default function Index() {
     if (!initialized) return
 
     if (!session) {
-      router.replace('/login')
+      router.replace('/(public)/login')
     } else if (role === 'owner') {
       router.replace('/(owner)')
     } else {

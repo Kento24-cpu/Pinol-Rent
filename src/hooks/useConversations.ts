@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import { useChatStore } from '../stores/chatStore'
@@ -9,6 +9,8 @@ export function useConversations() {
   const setUnreads = useChatStore((s) => s.setUnreads)
   const [conversations, setConversations] = useState<ConversationWithLatest[]>([])
   const [loading, setLoading] = useState(true)
+  const convRef = useRef(conversations)
+  convRef.current = conversations
 
   const fetchConversations = useCallback(async () => {
     if (!user) return
@@ -59,8 +61,12 @@ export function useConversations() {
     const channel = supabase
       .channel('conversations-updates')
       .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
-        () => { fetchConversations() }
+        { event: 'UPDATE', schema: 'public', table: 'conversations', filter: `renter_id=eq.${user.id}` },
+        () => fetchConversations()
+      )
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'conversations', filter: `owner_id=eq.${user.id}` },
+        () => fetchConversations()
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }

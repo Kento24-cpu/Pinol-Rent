@@ -58,7 +58,14 @@ export function DepartmentPicker({ departments, value, onChange }: DepartmentPic
             />
 
             <ScrollView style={styles.list}>
-              {filtered.map((dept) => (
+              {filtered.length === 0 ? (
+                <View style={styles.empty}>
+                  <Icon source="map-search" size={40} color={colors.onSurfaceVariant} />
+                  <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
+                    No se encontraron departamentos
+                  </Text>
+                </View>
+              ) : filtered.map((dept) => (
                 <Button
                   key={dept.id}
                   mode="text"
@@ -105,4 +112,5 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 8 },
   item: { borderRadius: 12, marginBottom: 2 },
   itemContent: { justifyContent: 'flex-start', paddingVertical: 8 },
+  empty: { alignItems: 'center', paddingVertical: 40 },
 })

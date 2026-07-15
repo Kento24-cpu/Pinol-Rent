@@ -17,9 +17,12 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
 
   const handleLogout = async () => {
     setShowLogout(false)
-    await supabase.auth.signOut()
-    useAuthStore.getState().reset()
-    router.replace('/login')
+    try {
+      await supabase.auth.signOut()
+    } finally {
+      useAuthStore.getState().reset()
+      router.replace('/(public)/login')
+    }
   }
 
   return (
@@ -52,7 +55,7 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <Divider style={{ marginBottom: 8 }} />
-        <TouchableRipple onPress={() => setShowLogout(true)} rippleColor={colors.error + '20'}>
+        <TouchableRipple onPress={() => setShowLogout(true)} rippleColor={colors.error + '20'} accessibilityLabel="Cerrar sesión">
           <View style={styles.logoutItem}>
             <Icon source="logout" size={22} color={colors.error} />
             <Text variant="bodyLarge" style={{ color: colors.error, marginLeft: 32, fontWeight: '500' }}>

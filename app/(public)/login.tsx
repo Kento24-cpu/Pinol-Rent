@@ -1,11 +1,10 @@
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
 import { Text, TextInput, Button, Surface, useTheme } from 'react-native-paper'
-import { Link, router } from 'expo-router'
+import { Link } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../../src/lib/supabase'
-import { useAuthStore } from '../../src/stores/authStore'
 
 const schema = z.object({
   email: z.string().email('Correo inválido'),
@@ -23,32 +22,12 @@ export default function LoginScreen() {
   })
 
   const onSubmit = async ({ email, password }: LoginForm) => {
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     if (signInError) {
       setError('root', { message: signInError.message })
       return
     }
-
-    const session = data.session
-    if (!session) {
-      setError('root', { message: 'Error al iniciar sesión. Intenta de nuevo.' })
-      return
-    }
-
-    let role = 'renter'
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
-      if (profile) role = profile.role
-    } catch {
-      // fallback to renter if profile fetch fails
-    }
-
-    useAuthStore.getState().setRole(role as 'owner' | 'renter')
-    router.replace(role === 'owner' ? '/(owner)' : '/(renter)')
+    // Navigation handled by index.tsx via auth store
   }
 
   return (
