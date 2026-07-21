@@ -15,7 +15,7 @@ export interface CarWithRelations {
   reviews_count: number | null
   created_at: string | null
   department: { name: string } | null
-  profile: { full_name: string; business_name: string | null; phone: string | null } | null
+  profile: { full_name: string | null; business_name: string | null; phone: string | null; cedula: string | null } | null
   car_tags: { tag: { name: string; slug: string } }[]
 }
 
@@ -29,7 +29,7 @@ export interface ConversationWithLatest {
   created_at: string | null
   car: { brand: string; model: string; image_url: string | null } | null
   renter: { full_name: string; avatar_url: string | null } | null
-  owner: { full_name: string; avatar_url: string | null } | null
+  owner: { full_name: string | null; avatar_url: string | null } | null
   latest_message: { content: string; created_at: string | null; sender_id: string } | null
   unread_count?: number
 }
@@ -42,11 +42,11 @@ export interface BookingWithRelations {
   end_date: string
   total_price: number
   unit_price: number | null
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'pending_payment'
   created_at: string | null
   car: { brand: string; model: string; image_url: string | null; price_per_day: number } | null
   renter: { full_name: string; avatar_url: string | null } | null
-  owner?: { full_name: string; avatar_url: string | null } | null
+  owner?: { full_name: string | null; avatar_url: string | null } | null
 }
 
 export interface ReviewWithRelations {
@@ -68,5 +68,5 @@ export interface MessageWithSender {
   attachment_url: string | null
   read_at: string | null
   created_at: string | null
-  sender: { full_name: string; avatar_url: string | null } | null
+  sender: { full_name: string | null; avatar_url: string | null } | null
 }

@@ -11,12 +11,17 @@ async function ensureProfile(userId: string, fullName?: string): Promise<void> {
 
   let role: string | null = null
   if (!fullName) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user?.id === userId) {
-      const meta = user.user_metadata
-      fullName = (meta?.full_name as string) ?? user.email?.split('@')[0] ?? 'Usuario'
-      role = (meta?.role as string) ?? null
-    } else {
+    try {
+      const { data } = await supabase.auth.getUser()
+      const user = data?.user ?? null
+      if (user?.id === userId) {
+        const meta = user.user_metadata
+        fullName = (meta?.full_name as string) ?? user.email?.split('@')[0] ?? 'Usuario'
+        role = (meta?.role as string) ?? null
+      } else {
+        fullName = 'Usuario'
+      }
+    } catch {
       fullName = 'Usuario'
     }
   }
@@ -24,7 +29,7 @@ async function ensureProfile(userId: string, fullName?: string): Promise<void> {
   const { error } = await supabase.from('profiles').insert({
     id: userId,
     full_name: fullName,
-    role: (role as 'owner' | 'renter') ?? 'renter',
+    role: (role as 'owner' | 'renter' | 'admin') ?? 'renter',
   })
 
   if (error && !error.message.includes('duplicate key')) {

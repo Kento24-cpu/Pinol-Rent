@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": false,
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.pinolrent",
@@ -34,14 +34,12 @@
       "typedRoutes": true
     },
     "plugins": [
-      "expo-sqlite",
       "expo-router",
       "expo-status-bar",
       "expo-secure-store",
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
           "color": "#1565C0"
         }
       ]

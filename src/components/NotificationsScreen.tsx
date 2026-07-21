@@ -1,12 +1,29 @@
 import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
-import { Text, Surface, Switch, Divider, useTheme } from 'react-native-paper'
+import { Text, Surface, Switch, Divider, useTheme, Button, Icon } from 'react-native-paper'
+import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useAuthStore } from '../stores/authStore'
 import { useNotificationPrefs } from '../hooks/useNotificationPrefs'
 
 export function NotificationsScreen() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const session = useAuthStore((s) => s.session)
   const { prefs, loading, updatePref } = useNotificationPrefs()
+
+  if (!session) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <Icon source="bell-lock" size={48} color={colors.onSurfaceVariant} />
+        <Text variant="titleMedium" style={{ marginTop: 16, color: colors.onSurface }}>
+          Inicia sesión para configurar notificaciones
+        </Text>
+        <Button mode="contained" onPress={() => router.push('/(public)/login')} style={{ marginTop: 20 }}>
+          Iniciar sesión
+        </Button>
+      </View>
+    )
+  }
 
   if (loading) {
     return (

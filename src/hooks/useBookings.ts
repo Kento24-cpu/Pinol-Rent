@@ -4,12 +4,13 @@ import { useAuthStore } from '../stores/authStore'
 import type { BookingWithRelations } from '../types/database.types'
 import type { Database } from '../types/database'
 
-type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed'
+type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'pending_payment'
 
 interface CreateBookingParams {
   carId: number
   startDate: string
   endDate: string
+  status?: 'pending_payment'
 }
 
 export function useBookings() {
@@ -18,10 +19,9 @@ export function useBookings() {
   const [loading, setLoading] = useState(true)
   const genRef = useRef(0)
 
-  const createBooking = useCallback(async ({ carId, startDate, endDate }: CreateBookingParams) => {
+  const createBooking = useCallback(async ({ carId, startDate, endDate, status }: CreateBookingParams) => {
     if (!user) throw new Error('Debes iniciar sesión')
 
-    type BookingInsert = Database['public']['Tables']['bookings']['Insert']
     const { data, error } = await supabase
       .from('bookings')
       .insert({
@@ -30,14 +30,12 @@ export function useBookings() {
         start_date: startDate,
         end_date: endDate,
         total_price: 0,
-      } satisfies BookingInsert)
+        status,
+      } satisfies Database['public']['Tables']['bookings']['Insert'])
       .select('id')
       .single()
 
     if (error) {
-      if (error.message.includes('El auto no está disponible')) {
-        throw new Error(error.message)
-      }
       throw new Error(error.message)
     }
 
@@ -74,15 +72,20 @@ export function useBookings() {
     const gen = ++genRef.current
     setLoading(true)
 
-    const { data } = await supabase
-      .from('bookings')
-      .select('*, car:car_id(brand, model, image_url, price_per_day)')
-      .eq('renter_id', user.id)
-      .order('created_at', { ascending: false })
+    try {
+      const { data } = await supabase
+        .from('bookings')
+        .select('*, car:car_id(brand, model, image_url, price_per_day)')
+        .eq('renter_id', user.id)
+        .order('created_at', { ascending: false })
 
-    if (gen !== genRef.current) return
-    setBookings((data ?? []) as unknown as BookingWithRelations[])
-    setLoading(false)
+      if (gen !== genRef.current) return
+      setBookings((data ?? []) as unknown as BookingWithRelations[])
+    } catch (e) {
+      console.error('Failed to fetch renter bookings', e)
+    } finally {
+      setLoading(false)
+    }
   }, [user])
 
   const fetchOwnerBookings = useCallback(async () => {
@@ -90,16 +93,20 @@ export function useBookings() {
     const gen = ++genRef.current
     setLoading(true)
 
-    const { data } = await supabase
-      .from('bookings')
-      .select('*, car:car_id!inner(brand, model, image_url, price_per_day, owner_id), renter:renter_id(full_name, avatar_url)')
-      .eq('car.owner_id', user.id)
-      .order('created_at', { ascending: false })
+    try {
+      const { data } = await supabase
+        .from('bookings')
+        .select('*, car:car_id!inner(brand, model, image_url, price_per_day, owner_id), renter:renter_id(full_name, avatar_url)')
+        .eq('car.owner_id', user.id)
+        .order('created_at', { ascending: false })
 
-    if (gen !== genRef.current) return
-    const typed = (data ?? []) as unknown as BookingWithRelations[]
-    setBookings(typed.map((b) => ({ ...b, owner: null })))
-    setLoading(false)
+      if (gen !== genRef.current) return
+      setBookings((data ?? []) as unknown as BookingWithRelations[])
+    } catch (e) {
+      console.error('Failed to fetch owner bookings', e)
+    } finally {
+      setLoading(false)
+    }
   }, [user])
 
   const fetchBooking = useCallback(async (bookingId: number) => {

@@ -1,5 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders, handleCors, corsResponse } from '../_shared/cors.ts'
+import { sendPush } from '../_shared/push.ts'
 
 interface PgNetPayload {
   type: 'INSERT' | 'UPDATE'
@@ -18,18 +20,21 @@ interface PgNetPayload {
 }
 
 serve(async (req) => {
+  const corsPreflight = handleCors(req)
+  if (corsPreflight) return corsPreflight
+
   const raw = await req.json()
   const payload: PgNetPayload = raw.type ? raw : raw.body
 
   if (!payload.record) {
-    return new Response('bad payload', { status: 400 })
+    return corsResponse('bad payload', 400)
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!supabaseUrl || !supabaseKey) {
     console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
-    return new Response('server config error', { status: 500 })
+    return corsResponse('server config error', 500)
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey)
@@ -40,7 +45,7 @@ serve(async (req) => {
     .eq('id', payload.record.car_id)
     .single()
 
-  if (!car) return new Response('car not found', { status: 404 })
+  if (!car) return corsResponse('car not found', 404)
 
   const { data: renter } = await supabase
     .from('profiles')
@@ -48,57 +53,144 @@ serve(async (req) => {
     .eq('id', payload.record.renter_id)
     .single()
 
-  let receiverId: string
-  let title: string
-  let body: string
-  let data: Record<string, unknown>
+  interface NotificationTarget {
+    userId: string
+    title: string
+    body: string
+    data: Record<string, unknown>
+  }
 
-  if (payload.type === 'INSERT') {
-    receiverId = car.owner_id
-    title = 'Nueva solicitud de reserva'
-    body = `${renter?.full_name ?? 'Alguien'} quiere rentar tu ${car.brand} ${car.model}`
-    data = { booking_id: payload.record.id, type: 'booking' }
+  const targets: NotificationTarget[] = []
+  let notifyAdmin = false
+  let adminTitle = ''
+  let adminBody = ''
+
+  if (payload.type === 'INSERT' && payload.record.status === 'pending_payment') {
+    targets.push({
+      userId: payload.record.renter_id,
+      title: 'Solicitud de pago recibida',
+      body: `Tu solicitud para rentar el ${car.brand} ${car.model} está en revisión. Te notificaremos cuando sea aprobada.`,
+      data: { booking_id: payload.record.id, type: 'booking' },
+    })
+    notifyAdmin = true
+    adminTitle = 'Nuevo pago pendiente'
+    adminBody = `${renter?.full_name ?? 'Alguien'} quiere rentar ${car.brand} ${car.model} — revisa el pago`
+  } else if (payload.type === 'INSERT') {
+    targets.push({
+      userId: car.owner_id,
+      title: 'Nueva solicitud de reserva',
+      body: `${renter?.full_name ?? 'Alguien'} quiere rentar tu ${car.brand} ${car.model}`,
+      data: { booking_id: payload.record.id, type: 'booking' },
+    })
   } else if (payload.record.status === 'confirmed') {
-    receiverId = payload.record.renter_id
-    title = 'Reserva confirmada'
-    body = `Tu reserva del ${car.brand} ${car.model} fue aceptada`
-    data = { booking_id: payload.record.id, type: 'booking' }
+    targets.push({
+      userId: payload.record.renter_id,
+      title: 'Reserva confirmada',
+      body: `Tu reserva del ${car.brand} ${car.model} fue aceptada`,
+      data: { booking_id: payload.record.id, type: 'booking' },
+    })
+  } else if (payload.record.status === 'pending') {
+    targets.push({
+      userId: car.owner_id,
+      title: 'Pago aprobado — nueva reserva',
+      body: `El pago para ${car.brand} ${car.model} fue aprobado. Revisa la solicitud.`,
+      data: { booking_id: payload.record.id, type: 'booking' },
+    })
+    targets.push({
+      userId: payload.record.renter_id,
+      title: 'Pago aprobado',
+      body: `Tu pago para ${car.brand} ${car.model} fue aprobado. Confirma tu reserva.`,
+      data: { booking_id: payload.record.id, type: 'booking' },
+    })
   } else if (payload.record.status === 'cancelled') {
-    receiverId = payload.record.renter_id
-    title = 'Reserva cancelada'
-    body = `La reserva del ${car.brand} ${car.model} fue cancelada`
-    data = { booking_id: payload.record.id, type: 'booking' }
+    if (payload.old_record?.status === 'pending_payment') {
+      targets.push({
+        userId: payload.record.renter_id,
+        title: 'Solicitud de pago rechazada',
+        body: `Tu solicitud de pago para ${car.brand} ${car.model} no fue aprobada. Si tienes dudas, contacta al equipo de Pinol-Rent.`,
+        data: { booking_id: payload.record.id, type: 'booking' },
+      })
+    } else {
+      targets.push({
+        userId: payload.record.renter_id,
+        title: 'Reserva cancelada',
+        body: `La reserva del ${car.brand} ${car.model} fue cancelada`,
+        data: { booking_id: payload.record.id, type: 'booking' },
+      })
+    }
   } else if (payload.record.status === 'completed') {
-    receiverId = payload.record.renter_id
-    title = 'Viaje completado'
-    body = `Gracias por rentar el ${car.brand} ${car.model}. ¡Califica tu experiencia!`
-    data = { booking_id: payload.record.id, type: 'booking' }
+    targets.push({
+      userId: payload.record.renter_id,
+      title: 'Viaje completado',
+      body: `Gracias por rentar el ${car.brand} ${car.model}. ¡Califica tu experiencia!`,
+      data: { booking_id: payload.record.id, type: 'booking' },
+    })
   } else {
-    return new Response('no notification needed', { status: 200 })
+    return corsResponse('no notification needed', 200)
   }
 
-  const { data: tokens } = await supabase
-    .from('push_tokens')
-    .select('token')
-    .eq('user_id', receiverId)
+  for (const t of targets) {
+    const { data: tokens } = await supabase
+      .from('push_tokens')
+      .select('token')
+      .eq('user_id', t.userId)
 
-  if (!tokens || tokens.length === 0) {
-    return new Response('no tokens', { status: 200 })
+    if (tokens && tokens.length > 0) {
+      await sendPush(
+        supabaseUrl, supabaseKey,
+        tokens.map((tk: { token: string }) => ({
+          to: tk.token,
+          sound: 'default' as const,
+          title: t.title,
+          body: t.body.slice(0, 100),
+          data: t.data,
+        })),
+      )
+    }
+
+    await supabase.from('notifications').insert({
+      user_id: t.userId,
+      title: t.title,
+      body: t.body.slice(0, 200),
+      data: t.data,
+    }).maybeSingle()
   }
 
-  const messages = tokens.map((t: { token: string }) => ({
-    to: t.token,
-    sound: 'default' as const,
-    title,
-    body: body.slice(0, 100),
-    data,
-  }))
+  if (notifyAdmin) {
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'admin')
 
-  await fetch('https://exp.host/--/api/v2/push/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(messages),
-  })
+    if (admins && admins.length > 0) {
+      const { data: adminTokens } = await supabase
+        .from('push_tokens')
+        .select('token')
+        .in('user_id', admins.map((a: { id: string }) => a.id))
 
-  return new Response('ok', { status: 200 })
+      if (adminTokens && adminTokens.length > 0) {
+        await sendPush(
+          supabaseUrl, supabaseKey,
+          adminTokens.map((t: { token: string }) => ({
+            to: t.token,
+            sound: 'default' as const,
+            title: adminTitle,
+            body: adminBody.slice(0, 100),
+            data: { booking_id: payload.record.id, type: 'admin_review' },
+          })),
+        )
+      }
+
+      for (const admin of admins) {
+        await supabase.from('notifications').insert({
+          user_id: admin.id,
+          title: adminTitle,
+          body: adminBody.slice(0, 200),
+          data: { booking_id: payload.record.id, type: 'admin_review' },
+        }).maybeSingle()
+      }
+    }
+  }
+
+  return corsResponse('ok', 200)
 })

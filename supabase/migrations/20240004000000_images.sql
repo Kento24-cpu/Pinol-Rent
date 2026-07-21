@@ -1,4 +1,7 @@
 -- Migration 4: Storage bucket for car images
+-- Note: storage schema/bootstrap must be run as supabase_admin before migrations.
+-- Run manually: GRANT CREATE ON SCHEMA storage TO postgres;
+-- Then run:    supabase migration up
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('car-images', 'car-images', true, 5242880, '{"image/png","image/jpeg","image/webp","image/heic","image/heif"}')

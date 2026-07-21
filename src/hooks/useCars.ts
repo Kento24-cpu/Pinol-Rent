@@ -1,6 +1,5 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { cacheCars, getCachedCars } from '../lib/db'
 import type { CarWithRelations } from '../types/database.types'
 
 interface FlatCar {
@@ -112,7 +111,7 @@ export function useCars(options?: UseCarsOptions) {
   const pageRef = useRef(0)
   const hasMoreRef = useRef(true)
   const optsRef = useRef(options)
-  optsRef.current = options
+  useEffect(() => { optsRef.current = options }, [options])
 
   const runQuery = useCallback(async (start: number, isRefresh: boolean): Promise<FlatCar[] | null> => {
     const gen = ++genRef.current
@@ -130,28 +129,11 @@ export function useCars(options?: UseCarsOptions) {
     const { data, error: fetchError } = await q
     if (gen !== genRef.current) return null
     if (fetchError) {
-      if (start === 0) {
-        const cached = await getCachedCars()
-        if (cached.length > 0)           return cached.map((c) => ({
-          id: c.id, brand: c.brand, model: c.model, year: c.year,
-          price_per_day: c.price_per_day, department_name: c.department_name,
-          image_url: c.image_url, avg_rating: c.avg_rating, reviews_count: c.reviews_count,
-          available: true, business_name: null, owner_full_name: '', tags: [],
-        })) as FlatCar[]
-      }
       setError(fetchError.message)
       return null
     }
     setError(null)
     const mapped = (data as unknown as CarWithRelations[]).map(mapCar)
-    if (start === 0) {
-      const toCache = mapped.map((c: FlatCar) => ({
-        id: c.id, brand: c.brand, model: c.model, year: c.year,
-        price_per_day: c.price_per_day, department_name: c.department_name,
-        image_url: c.image_url ?? null, avg_rating: c.avg_rating, reviews_count: c.reviews_count,
-      }))
-      cacheCars(toCache).catch((e) => console.error('Failed to cache cars:', e))
-    }
     return mapped
   }, [])
 

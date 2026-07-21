@@ -1,4 +1,5 @@
 -- Migration 8: Dedicated storage bucket for avatars
+-- Note: storage schema/bootstrap is handled by migration 4 (images.sql)
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('avatars', 'avatars', true, 2097152, '{"image/png","image/jpeg","image/webp"}')

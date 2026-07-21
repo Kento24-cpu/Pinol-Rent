@@ -3,6 +3,7 @@ import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TextInput a
 import { Text, IconButton, useTheme, ActivityIndicator, Avatar, Icon, Snackbar } from 'react-native-paper'
 import * as ImagePicker from 'expo-image-picker'
 import { useChat } from '../hooks/useChat'
+import type { MessageWithSender } from '../types/database.types'
 import { useAuthStore } from '../stores/authStore'
 import { useChatStore } from '../stores/chatStore'
 
@@ -24,7 +25,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
   useEffect(() => {
     markAsRead()
     clearUnread(conversationId)
-  }, [conversationId, markAsRead, clearUnread, user])
+  }, [conversationId, markAsRead, clearUnread, user?.id])
 
   const handleSend = useCallback(async () => {
     const text = input.trim()
@@ -50,14 +51,15 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
       allowsEditing: true,
       quality: 0.7,
     })
-    if (result.canceled) return
+    if (result.canceled || !result.assets?.length) return
     setInput('')
     try {
-      await sendMessage('', { uri: result.assets[0].uri, mimeType: result.assets[0].mimeType ?? 'image/jpeg' })
+      const asset = result.assets[0]!
+      await sendMessage('', { uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' })
     } catch (e) { setSnackbar({ visible: true, message: (e as Error).message }) }
   }, [sendMessage])
 
-  const renderMessage = useCallback(({ item }: { item: typeof messages[number] }) => {
+  const renderMessage = useCallback(({ item }: { item: MessageWithSender }) => {
     const isOwn = item.sender_id === userId
 
     return (
@@ -88,7 +90,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
           <Text style={{ color: isOwn ? colors.onPrimary : colors.onSurface }}>{item.content}</Text>
           <View style={styles.msgMeta}>
             <Text variant="labelSmall" style={{ color: isOwn ? colors.onPrimaryContainer : colors.onSurfaceVariant }}>
-              {new Date(item.created_at ?? '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
               {item.read_at && isOwn ? ' ✓✓' : ''}
             </Text>
           </View>

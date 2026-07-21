@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import type { ReviewWithRelations } from '../types/database.types'
@@ -7,17 +7,26 @@ export function useReviews() {
   const user = useAuthStore((s) => s.session?.user)
   const [reviews, setReviews] = useState<ReviewWithRelations[]>([])
   const [loading, setLoading] = useState(false)
+  const genRef = useRef(0)
 
   const fetchCarReviews = useCallback(async (carId: number) => {
+    const gen = ++genRef.current
     setLoading(true)
-    const { data } = await supabase
-      .from('reviews')
-      .select('*, renter:renter_id(full_name, avatar_url)')
-      .eq('car_id', carId)
-      .order('created_at', { ascending: false })
-    if (data) setReviews(data as unknown as ReviewWithRelations[])
-    setLoading(false)
-    return data as unknown as ReviewWithRelations[]
+    try {
+      const { data } = await supabase
+        .from('reviews')
+        .select('*, renter:renter_id(full_name, avatar_url)')
+        .eq('car_id', carId)
+        .order('created_at', { ascending: false })
+      if (gen !== genRef.current) return
+      if (data) setReviews(data as unknown as ReviewWithRelations[])
+      return (data ?? []) as ReviewWithRelations[]
+    } catch (e) {
+      console.error('Failed to fetch reviews', e)
+      return []
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   const fetchBookingReview = useCallback(async (bookingId: number) => {

@@ -1,15 +1,31 @@
 import { useCallback } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native'
-import { Text, useTheme, Icon } from 'react-native-paper'
+import { Text, Button, useTheme, Icon } from 'react-native-paper'
 import { router, useFocusEffect } from 'expo-router'
+import { useAuthStore } from '../../../src/stores/authStore'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { BookingCard } from '../../../src/components/BookingCard'
 
 export default function RenterBookingsScreen() {
   const { colors } = useTheme()
+  const session = useAuthStore((s) => s.session)
   const { bookings, loading, fetchMyBookings } = useBookings()
 
   useFocusEffect(useCallback(() => { fetchMyBookings() }, [fetchMyBookings]))
+
+  if (!session) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Icon source="calendar-lock" size={48} color={colors.onSurfaceVariant} />
+        <Text variant="titleMedium" style={{ marginTop: 16, color: colors.onSurface }}>
+          Inicia sesión para ver tus reservas
+        </Text>
+        <Button mode="contained" onPress={() => router.push('/(public)/login')} style={{ marginTop: 20 }}>
+          Iniciar sesión
+        </Button>
+      </View>
+    )
+  }
 
   if (loading) {
     return (

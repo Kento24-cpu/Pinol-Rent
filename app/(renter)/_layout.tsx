@@ -5,21 +5,23 @@ import { router } from 'expo-router'
 import { Icon, Badge, useTheme } from 'react-native-paper'
 import { useAuthStore } from '../../src/stores/authStore'
 import { useChatStore } from '../../src/stores/chatStore'
+import { useNotifications } from '../../src/hooks/useNotifications'
 import { AppDrawerContent } from '../../src/components/AppDrawerContent'
 import { OfflineBanner } from '../../src/components/OfflineBanner'
 
 export default function RenterLayout() {
   const { colors } = useTheme()
-  const session = useAuthStore((s) => s.session)
   const role = useAuthStore((s) => s.role)
   const initialized = useAuthStore((s) => s.initialized)
   const unreadTotal = useChatStore((s) => s.unreadTotal)
+  const { unreadCount: notifUnread } = useNotifications({ subscribe: false })
 
   useEffect(() => {
     if (!initialized) return
-    if (!session) router.replace('/(public)/login')
+    if (!role) router.replace('/(public)')
     else if (role === 'owner') router.replace('/(owner)')
-  }, [session, role, initialized])
+    else if (role === 'admin') router.replace('/(admin)')
+  }, [role, initialized])
 
   return (
     <>
@@ -96,11 +98,24 @@ export default function RenterLayout() {
         }}
       />
       <Drawer.Screen
+        name="notifications-list"
+        options={{
+          title: 'Centro de notificaciones',
+          drawerLabel: 'Notificaciones',
+          drawerIcon: ({ color }) => (
+            <View>
+              <Icon source="bell-ring" size={22} color={color as string} />
+              {notifUnread > 0 && <Badge size={16} style={{ position: 'absolute', top: -6, right: -6 }}>{notifUnread}</Badge>}
+            </View>
+          ),
+        }}
+      />
+      <Drawer.Screen
         name="notifications"
         options={{
-          title: 'Notificaciones',
-          drawerLabel: 'Notificaciones',
-          drawerIcon: ({ color }) => <Icon source="bell" size={22} color={color as string} />,
+          title: 'Preferencias',
+          drawerLabel: 'Preferencias',
+          drawerIcon: ({ color }) => <Icon source="cog" size={22} color={color as string} />,
         }}
       />
       <Drawer.Screen

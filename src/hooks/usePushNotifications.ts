@@ -7,28 +7,36 @@ import { router } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-})
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  })
+}
 
 export async function registerForPushNotifications(): Promise<string | null> {
+  if (Platform.OS === 'web') return null
+
   if (!Device.isDevice) {
-    console.log('Push notifications require a physical device')
+    console.warn('Push notifications require a physical device')
     return null
   }
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('messages', {
-      name: 'Mensajes',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-    })
+  try {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('messages', {
+        name: 'Mensajes',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+      })
+    }
+  } catch (e) {
+    console.warn('Failed to set notification channel:', e)
   }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync()
@@ -40,7 +48,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (finalStatus !== 'granted') {
-    console.log('Push notification permission denied')
+    console.warn('Push notification permission denied')
     return null
   }
 
@@ -49,7 +57,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     Constants.easConfig?.projectId
 
   if (!projectId) {
-    console.log('No EAS project ID configured — skipping push token registration')
+    console.warn('No EAS project ID configured — skipping push token registration')
     return null
   }
 
@@ -57,7 +65,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     const tokenData = await Notifications.getExpoPushTokenAsync({ projectId })
     return tokenData.data
   } catch (e) {
-    console.log('Failed to get push token:', e)
+    console.warn('Failed to get push token:', e)
     return null
   }
 }
@@ -69,7 +77,8 @@ function navigateFromNotification(data: Record<string, unknown>) {
   const carId = data.car_id as number | undefined
   const role = useAuthStore.getState().role
 
-  const group = role === 'owner' ? '/(owner)' : '/(renter)'
+  if (!role) return
+  const group = role === 'owner' ? '/(owner)' : role === 'admin' ? '/(admin)' : '/(renter)'
 
   if (type === 'booking' && bookingId) {
     router.navigate(`${group}/bookings/${bookingId}`)
@@ -108,23 +117,24 @@ export function usePushNotifications() {
       } catch (e) {
         console.error('Failed to register push token:', e)
       }
-    })
+    }).catch((e) => console.error('Push registration failed:', e))
 
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      navigateFromNotification(response.notification.request.content.data ?? {})
-    })
-
+    let sub: { remove: () => void } | undefined
     if (Platform.OS !== 'web') {
+      sub = Notifications.addNotificationResponseReceivedListener((response) => {
+        navigateFromNotification(response.notification.request.content.data ?? {})
+      })
+
       Notifications.getLastNotificationResponseAsync().then((response) => {
         if (response && !cancelled) {
           navigateFromNotification(response.notification.request.content.data ?? {})
         }
-      })
+      }).catch((e) => console.error('Failed to get last notification response:', e))
     }
 
     return () => {
       cancelled = true
-      sub.remove()
+      sub?.remove()
     }
   }, [user])
 }

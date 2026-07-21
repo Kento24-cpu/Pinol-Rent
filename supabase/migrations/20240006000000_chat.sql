@@ -25,7 +25,10 @@ CREATE INDEX IF NOT EXISTS idx_conversations_owner ON conversations(owner_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_car ON conversations(car_id);
 
 -- Prevent duplicate conversations (race condition guard)
-ALTER TABLE conversations ADD CONSTRAINT IF NOT EXISTS conversations_unique_participants UNIQUE (car_id, renter_id, owner_id);
+do $$ begin
+  alter table conversations add constraint conversations_unique_participants unique (car_id, renter_id, owner_id);
+exception when duplicate_table then null;
+end $$;
 
 -- 4. Messages
 CREATE TABLE messages (
@@ -77,6 +80,8 @@ CREATE POLICY "messages_update_own" ON messages
   FOR UPDATE USING (sender_id = auth.uid());
 
 -- 6. Storage bucket for chat attachments
+-- Note: storage schema/bootstrap is handled by migration 4 (images.sql)
+
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('chat-attachments', 'chat-attachments', false, 5242880, '{"image/png","image/jpeg","image/webp","image/heic","image/heif","application/pdf"}')
 ON CONFLICT (id) DO NOTHING;

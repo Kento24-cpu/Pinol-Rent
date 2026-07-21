@@ -1,5 +1,5 @@
 import { ProfileScreen } from '../../src/components/ProfileScreen'
 
 export default function OwnerProfileScreen() {
-  return <ProfileScreen showBusinessName />
+  return <ProfileScreen isOwner />
 }

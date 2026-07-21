@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { View, ScrollView, StyleSheet, ActivityIndicator, Image, Alert } from 'react-native'
-import { Text, TextInput, Button, Surface, Snackbar, useTheme } from 'react-native-paper'
+import { Text, TextInput, Button, Surface, Snackbar, useTheme, Icon } from 'react-native-paper'
+import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
@@ -11,17 +12,19 @@ import { useAuthStore } from '../stores/authStore'
 import type { Database } from '../types/database'
 
 interface ProfileScreenProps {
-  showBusinessName?: boolean
+  isOwner?: boolean
 }
 
 interface ProfileData {
-  fullName: string
-  businessName: string
+  fullName: string | null
+  businessName: string | null
+  businessAddress: string | null
   phone: string
+  cedula: string
   avatarUrl: string
 }
 
-export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
+export function ProfileScreen({ isOwner }: ProfileScreenProps) {
   const { colors } = useTheme()
   const user = useAuthStore((s) => s.session?.user)
   const session = useAuthStore((s) => s.session)
@@ -33,43 +36,48 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
   const schema = z.object({
-    fullName: z.string().min(2, 'Nombre demasiado corto'),
+    fullName: z.string().optional(),
     businessName: z.string().optional(),
-    phone: z.string().optional(),
+    businessAddress: z.string().optional(),
+    phone: z.string().min(6, 'Teléfono inválido'),
+    cedula: z.string().min(5, 'Cédula inválida'),
   })
 
   type ProfileForm = z.infer<typeof schema>
 
   const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
     resolver: zodResolver(schema),
-    defaultValues: { fullName: '', businessName: '', phone: '' },
+    defaultValues: { fullName: '', businessName: '', businessAddress: '', phone: '', cedula: '' },
   })
 
   useEffect(() => {
     if (!user) return
-    const fields = showBusinessName ? 'full_name, business_name, phone, avatar_url' : 'full_name, phone, avatar_url'
-    supabase.from('profiles').select(fields).eq('id', user.id).single()
+    supabase.from('profiles').select('full_name, business_name, business_address, phone, cedula, avatar_url').eq('id', user.id).single()
       .then((res) => {
         const data = res.data as {
-          full_name: string
-          business_name?: string | null
+          full_name: string | null
+          business_name: string | null
+          business_address: string | null
           phone: string | null
+          cedula: string | null
           avatar_url: string | null
         } | null
         if (data) {
           const p: ProfileData = {
             fullName: data.full_name,
-            businessName: data.business_name ?? '',
+            businessName: data.business_name,
+            businessAddress: data.business_address,
             phone: data.phone ?? '',
+            cedula: data.cedula ?? '',
             avatarUrl: data.avatar_url ?? '',
           }
           setProfile(p)
           setAvatarUrl(p.avatarUrl)
-          reset(p)
+          reset({ fullName: p.fullName ?? '', businessName: p.businessName ?? '', businessAddress: p.businessAddress ?? '', phone: p.phone, cedula: p.cedula })
         }
         setLoading(false)
       }, () => setLoading(false))
-  }, [user, showBusinessName])
+  }, [user])
 
   const pickAndUploadAvatar = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -86,7 +94,7 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
     if (result.canceled || !user) return
 
     setUploading(true)
-    const file = result.assets[0]
+    const file = result.assets[0]!
 
     let blob: Blob
     try {
@@ -121,22 +129,27 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
   const onSubmit = async (form: ProfileForm) => {
     if (!user || !profile) return
     const update: Database['public']['Tables']['profiles']['Update'] = {
-      full_name: form.fullName,
       phone: form.phone || null,
+      cedula: form.cedula || null,
       avatar_url: avatarUrl || null,
     }
-    if (showBusinessName) update.business_name = form.businessName || null
+    if (isOwner) {
+      update.business_name = form.businessName || null
+      update.business_address = form.businessAddress || null
+    } else {
+      update.full_name = form.fullName || null
+    }
 
     const { error } = await supabase.from('profiles').update(update).eq('id', user.id)
     if (error) {
       setSnackbar({ visible: true, message: error.message })
     } else {
       if (profile.avatarUrl && !avatarUrl) {
-        supabase.storage.from('avatars').remove([`${user.id}/avatar`]).catch(() => {})
+        supabase.storage.from('avatars').remove([`${user.id}/avatar`]).catch((e) => console.warn('Failed to remove old avatar', e))
       }
       await supabase.auth.updateUser({
         data: {
-          full_name: form.fullName,
+          full_name: form.fullName || null,
           avatar_url: avatarUrl || null,
         },
       })
@@ -144,7 +157,14 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
       if (updatedSession) {
         useAuthStore.getState().setSession(updatedSession)
       }
-      setProfile({ fullName: form.fullName, businessName: form.businessName ?? '', phone: form.phone ?? '', avatarUrl })
+      setProfile({
+        fullName: isOwner ? null : (form.fullName ?? null),
+        businessName: isOwner ? (form.businessName ?? null) : null,
+        businessAddress: isOwner ? (form.businessAddress ?? null) : null,
+        phone: form.phone ?? '',
+        cedula: form.cedula ?? '',
+        avatarUrl,
+      })
       setEditing(false)
       setSnackbar({ visible: true, message: 'Perfil actualizado' })
     }
@@ -153,7 +173,7 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
   const startEditing = () => {
     if (profile) {
       setAvatarUrl(profile.avatarUrl)
-      reset(profile)
+      reset({ fullName: profile.fullName ?? '', businessName: profile.businessName ?? '', businessAddress: profile.businessAddress ?? '', phone: profile.phone, cedula: profile.cedula })
     }
     setEditing(true)
   }
@@ -161,9 +181,23 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
   const cancelEditing = () => {
     if (profile) {
       setAvatarUrl(profile.avatarUrl)
-      reset(profile)
+      reset({ fullName: profile.fullName ?? '', businessName: profile.businessName ?? '', businessAddress: profile.businessAddress ?? '', phone: profile.phone, cedula: profile.cedula })
     }
     setEditing(false)
+  }
+
+  if (!session) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Icon source="account-lock" size={48} color={colors.onSurfaceVariant} />
+        <Text variant="titleMedium" style={{ marginTop: 16, color: colors.onSurface }}>
+          Inicia sesión para ver tu perfil
+        </Text>
+        <Button mode="contained" onPress={() => router.push('/(public)/login')} style={{ marginTop: 20 }}>
+          Iniciar sesión
+        </Button>
+      </View>
+    )
   }
 
   if (loading) {
@@ -184,7 +218,9 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
             ) : (
               <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
                 <Text style={[styles.avatarText, { color: colors.onPrimary }]}>
-                  {profile?.fullName?.[0]?.toUpperCase() ?? '?'}
+                  {isOwner
+                    ? (profile?.businessName?.[0]?.toUpperCase() ?? '?')
+                    : (profile?.fullName?.[0]?.toUpperCase() ?? '?')}
                 </Text>
               </View>
             )}
@@ -194,17 +230,29 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
             Mi perfil
           </Text>
 
-          <View style={styles.fieldRow}>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Nombre completo</Text>
-            <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.fullName || '-'}</Text>
-          </View>
-
-          {showBusinessName && (
+          {isOwner ? (
             <View style={styles.fieldRow}>
               <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Empresa</Text>
               <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.businessName || '-'}</Text>
             </View>
+          ) : (
+            <View style={styles.fieldRow}>
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Nombre completo</Text>
+              <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.fullName || '-'}</Text>
+            </View>
           )}
+
+          {isOwner && (
+            <View style={styles.fieldRow}>
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Dirección</Text>
+              <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.businessAddress || '-'}</Text>
+            </View>
+          )}
+
+          <View style={styles.fieldRow}>
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Cédula</Text>
+            <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.cedula || '-'}</Text>
+          </View>
 
           <View style={styles.fieldRow}>
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Teléfono</Text>
@@ -236,7 +284,7 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
           ) : (
             <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
               <Text style={[styles.avatarText, { color: colors.onPrimary }]}>
-                {(profile?.fullName ?? '?')[0].toUpperCase()}
+                {(isOwner ? profile?.businessName?.[0] : profile?.fullName?.[0])?.toUpperCase() ?? '?'}
               </Text>
             </View>
           )}
@@ -252,36 +300,66 @@ export function ProfileScreen({ showBusinessName }: ProfileScreenProps) {
           </View>
         </View>
 
+        {isOwner ? (
+          <>
+            <Controller
+              control={control}
+              name="businessName"
+              render={({ field: { onChange, value } }) => (
+                <TextInput label="Nombre de la empresa" value={value ?? ''} onChangeText={onChange}
+                  mode="outlined" style={styles.input} disabled={isSubmitting}
+                  error={!!errors.businessName} />
+              )}
+            />
+            {errors.businessName ? <Text style={[styles.fieldError, { color: colors.error }]}>{errors.businessName.message}</Text> : null}
+
+            <Controller
+              control={control}
+              name="businessAddress"
+              render={({ field: { onChange, value } }) => (
+                <TextInput label="Dirección de la empresa" value={value ?? ''} onChangeText={onChange}
+                  mode="outlined" style={styles.input} disabled={isSubmitting}
+                  error={!!errors.businessAddress} />
+              )}
+            />
+            {errors.businessAddress ? <Text style={[styles.fieldError, { color: colors.error }]}>{errors.businessAddress.message}</Text> : null}
+          </>
+        ) : (
+          <>
+            <Controller
+              control={control}
+              name="fullName"
+              render={({ field: { onChange, value } }) => (
+                <TextInput label="Nombre completo" value={value ?? ''} onChangeText={onChange}
+                  mode="outlined" style={styles.input} disabled={isSubmitting}
+                  error={!!errors.fullName} />
+              )}
+            />
+            {errors.fullName ? <Text style={[styles.fieldError, { color: colors.error }]}>{errors.fullName.message}</Text> : null}
+          </>
+        )}
+
         <Controller
           control={control}
-          name="fullName"
+          name="cedula"
           render={({ field: { onChange, value } }) => (
-            <TextInput label="Nombre completo" value={value} onChangeText={onChange}
+            <TextInput label="Cédula de identidad" value={value ?? ''} onChangeText={onChange}
               mode="outlined" style={styles.input} disabled={isSubmitting}
-              error={!!errors.fullName} />
+              error={!!errors.cedula} />
           )}
         />
-
-        {showBusinessName && (
-          <Controller
-            control={control}
-            name="businessName"
-            render={({ field: { onChange, value } }) => (
-              <TextInput label="Nombre de la empresa" value={value} onChangeText={onChange}
-                mode="outlined" style={styles.input} disabled={isSubmitting} />
-            )}
-          />
-        )}
+        {errors.cedula ? <Text style={[styles.fieldError, { color: colors.error }]}>{errors.cedula.message}</Text> : null}
 
         <Controller
           control={control}
           name="phone"
           render={({ field: { onChange, value } }) => (
-            <TextInput label={showBusinessName ? 'Teléfono de contacto' : 'Teléfono'} value={value} onChangeText={onChange}
+            <TextInput label="Teléfono" value={value ?? ''} onChangeText={onChange}
               mode="outlined" style={styles.input} disabled={isSubmitting}
-              keyboardType="phone-pad" />
+              keyboardType="phone-pad" error={!!errors.phone} />
           )}
         />
+        {errors.phone ? <Text style={[styles.fieldError, { color: colors.error }]}>{errors.phone.message}</Text> : null}
 
         <View style={styles.actionRow}>
           <Button mode="outlined" onPress={cancelEditing} style={styles.halfBtn} disabled={isSubmitting}>
@@ -321,6 +399,7 @@ const styles = StyleSheet.create({
   avatarActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 24 },
   fieldRow: { marginBottom: 16 },
+  fieldError: { fontSize: 12, marginBottom: 10, marginLeft: 4 },
   input: { marginBottom: 12 },
   button: { borderRadius: 12, marginTop: 8 },
   buttonContent: { paddingVertical: 6 },

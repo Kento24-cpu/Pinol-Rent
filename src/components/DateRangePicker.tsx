@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
-import { View, FlatList, StyleSheet } from 'react-native'
-import { Text, Button, Surface, Icon, useTheme } from 'react-native-paper'
+import { View, StyleSheet } from 'react-native'
+import { Text, Button, Surface, useTheme } from 'react-native-paper'
 
 interface DateRangePickerProps {
   pricePerDay: number
@@ -10,7 +10,7 @@ interface DateRangePickerProps {
 }
 
 function formatDate(d: Date): string {
-  return d.toISOString().split('T')[0]
+  return d.toISOString().slice(0, 10)
 }
 
 function toDate(s: string): Date {
@@ -38,18 +38,22 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
   const [startDate, setStartDate] = useState<string | null>(null)
   const [endDate, setEndDate] = useState<string | null>(null)
 
-  const days = useMemo(() => {
-    const result: { date: string; day: number; month: number; isToday: boolean }[] = []
+  const weeks = useMemo(() => {
+    const raw: { date: string; day: number; month: number }[] = []
     for (let i = 0; i < 60; i++) {
       const d = addDays(today, i)
-      result.push({
-        date: formatDate(d),
-        day: d.getDate(),
-        month: d.getMonth(),
-        isToday: i === 0,
-      })
+      raw.push({ date: formatDate(d), day: d.getDate(), month: d.getMonth() })
     }
-    return result
+    const grouped: { month: number; days: typeof raw }[] = []
+    for (const item of raw) {
+      const last = grouped[grouped.length - 1]
+      if (!last || last.month !== item.month) {
+        grouped.push({ month: item.month, days: [item] })
+      } else {
+        last.days.push(item)
+      }
+    }
+    return grouped
   }, [today])
 
   const disabledSet = useMemo(() => new Set(disabledDates ?? []), [disabledDates])
@@ -82,64 +86,11 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
     return d >= s && d <= e
   }
 
-  const monthLabels = useMemo(() => {
-    const labels: { key: string; label: string }[] = []
-    for (const d of days) {
-      if (!labels.some((l) => l.key === `${d.month}`)) {
-        labels.push({ key: `${d.month}`, label: MONTH_NAMES[d.month] })
-      }
-    }
-    return labels
-  }, [days])
-
-  const renderDay = ({ item }: { item: typeof days[number] }) => {
-    const isSelected = item.date === startDate || item.date === endDate
-    const inRange = isDateInRange(item.date)
-    const isDisabled = disabledSet.has(item.date)
-    const isStart = item.date === startDate
-    const isEnd = item.date === endDate
-
-    return (
-      <View style={styles.dayCell}>
-        <Text variant="labelSmall" style={[styles.dayName, { color: colors.onSurfaceVariant }]}>
-          {DAY_NAMES[new Date(item.date + 'T00:00:00').getDay()]}
-        </Text>
-        <Button
-          mode={isSelected ? 'contained' : 'text'}
-          compact
-          disabled={isDisabled}
-          onPress={() => handleSelectDate(item.date)}
-          style={[
-            styles.dayBtn,
-            inRange && !isSelected && { backgroundColor: colors.primary + '20', borderRadius: 0 },
-            isStart && { borderTopLeftRadius: 20, borderBottomLeftRadius: 20 },
-            isEnd && { borderTopRightRadius: 20, borderBottomRightRadius: 20 },
-            isDisabled && { opacity: 0.3 },
-          ]}
-          contentStyle={styles.dayBtnContent}
-          labelStyle={[
-            styles.dayLabel,
-            isSelected && { color: colors.onPrimary },
-            isDisabled && { color: colors.onSurfaceVariant },
-          ]}
-        >
-          {item.day}
-        </Button>
-      </View>
-    )
-  }
-
   return (
     <Surface style={[styles.container, { backgroundColor: colors.surface }]} elevation={2}>
       <Text variant="titleMedium" style={[styles.title, { color: colors.primary }]}>
         Seleccionar fechas
       </Text>
-
-      {monthLabels.map((m) => (
-        <Text key={m.key} variant="labelLarge" style={[styles.monthLabel, { color: colors.onSurface }]}>
-          {m.label}
-        </Text>
-      ))}
 
       <View style={styles.weekHeader}>
         {DAY_NAMES.map((d) => (
@@ -149,14 +100,50 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
         ))}
       </View>
 
-      <FlatList
-        data={days}
-        renderItem={renderDay}
-        keyExtractor={(item) => item.date}
-        numColumns={7}
-        scrollEnabled={false}
-        columnWrapperStyle={styles.weekRow}
-      />
+      {weeks.map((section) => (
+        <View key={`m-${section.month}`}>
+          <Text variant="labelLarge" style={[styles.monthLabel, { color: colors.onSurface }]}>
+            {MONTH_NAMES[section.month]}
+          </Text>
+          <View style={styles.calendarGrid}>
+            {section.days.map((day) => {
+              const isSelected = day.date === startDate || day.date === endDate
+              const inRange = isDateInRange(day.date)
+              const isDisabled = disabledSet.has(day.date)
+              const isStart = day.date === startDate
+              const isEnd = day.date === endDate
+              return (
+                <View key={day.date} style={styles.dayCell}>
+                  <Text variant="labelSmall" style={[styles.dayName, { color: colors.onSurfaceVariant }]}>
+                    {DAY_NAMES[new Date(day.date + 'T00:00:00').getDay()]}
+                  </Text>
+                  <Button
+                    mode={isSelected ? 'contained' : 'text'}
+                    compact
+                    disabled={isDisabled}
+                    onPress={() => handleSelectDate(day.date)}
+                    style={[
+                      styles.dayBtn,
+                      inRange && !isSelected && { backgroundColor: colors.primary + '20', borderRadius: 0 },
+                      isStart && { borderTopLeftRadius: 20, borderBottomLeftRadius: 20 },
+                      isEnd && { borderTopRightRadius: 20, borderBottomRightRadius: 20 },
+                      isDisabled && { opacity: 0.3 },
+                    ]}
+                    contentStyle={styles.dayBtnContent}
+                    labelStyle={[
+                      styles.dayLabel,
+                      isSelected && { color: colors.onPrimary },
+                      isDisabled && { color: colors.onSurfaceVariant },
+                    ]}
+                  >
+                    {day.day}
+                  </Button>
+                </View>
+              )
+            })}
+          </View>
+        </View>
+      ))}
 
       {startDate && (
         <View style={[styles.summary, { borderTopColor: colors.outline }]}>
@@ -192,7 +179,7 @@ const styles = StyleSheet.create({
   monthLabel: { fontWeight: '600', marginBottom: 8, marginTop: 4 },
   weekHeader: { flexDirection: 'row', marginBottom: 4 },
   weekDay: { width: '14.28%', textAlign: 'center', fontWeight: '500', fontSize: 11 },
-  weekRow: { marginBottom: 2 },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   dayCell: { width: '14.28%', alignItems: 'center', marginBottom: 2 },
   dayName: { fontSize: 9, marginBottom: 2 },
   dayBtn: { minWidth: 36, height: 36, borderRadius: 18 },

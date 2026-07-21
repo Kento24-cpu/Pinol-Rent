@@ -1,5 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders, handleCors, corsResponse } from '../_shared/cors.ts'
+import { sendPush } from '../_shared/push.ts'
 
 interface PgNetPayload {
   type: 'INSERT'
@@ -17,18 +19,21 @@ interface PgNetPayload {
 }
 
 serve(async (req) => {
+  const corsPreflight = handleCors(req)
+  if (corsPreflight) return corsPreflight
+
   const raw = await req.json()
   const payload: PgNetPayload = raw.type ? raw : raw.body
 
   if (!payload.record) {
-    return new Response('bad payload', { status: 400 })
+    return corsResponse('bad payload', 400)
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!supabaseUrl || !supabaseKey) {
     console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
-    return new Response('server config error', { status: 500 })
+    return corsResponse('server config error', 500)
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey)
@@ -39,7 +44,7 @@ serve(async (req) => {
     .eq('id', payload.record.conversation_id)
     .single()
 
-  if (!conv) return new Response('not found', { status: 404 })
+  if (!conv) return corsResponse('not found', 404)
 
   const receiverId = conv.renter_id === payload.record.sender_id
     ? conv.owner_id
@@ -51,25 +56,22 @@ serve(async (req) => {
     .eq('user_id', receiverId)
 
   if (!tokens || tokens.length === 0) {
-    return new Response('no tokens', { status: 200 })
+    return corsResponse('no tokens', 200)
   }
 
-  const messages = tokens.map((t: { token: string }) => ({
-    to: t.token,
-    sound: 'default' as const,
-    title: 'Nuevo mensaje',
-    body: (payload.record.content ?? '').slice(0, 100),
-    data: {
-      conversation_id: payload.record.conversation_id,
-      type: 'chat',
-    },
-  }))
+  await sendPush(
+    supabaseUrl, supabaseKey,
+    tokens.map((t: { token: string }) => ({
+      to: t.token,
+      sound: 'default' as const,
+      title: 'Nuevo mensaje',
+      body: (payload.record.content ?? '').slice(0, 100),
+      data: {
+        conversation_id: payload.record.conversation_id,
+        type: 'chat',
+      },
+    })),
+  )
 
-  await fetch('https://exp.host/--/api/v2/push/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(messages),
-  })
-
-  return new Response('ok', { status: 200 })
+  return corsResponse('ok', 200)
 })

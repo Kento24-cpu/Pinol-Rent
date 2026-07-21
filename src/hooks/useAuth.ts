@@ -4,14 +4,14 @@ import { useAuthStore } from '../stores/authStore'
 
 const SAFETY_TIMEOUT = 8000
 
-async function fetchProfileWithRetry(userId: string, retries = 3, delay = 500): Promise<'owner' | 'renter' | null> {
+async function fetchProfileWithRetry(userId: string, retries = 3, delay = 500): Promise<'owner' | 'renter' | 'admin' | null> {
   for (let i = 0; i < retries; i++) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', userId)
       .single()
-    if (profile?.role) return profile.role as 'owner' | 'renter'
+    if (profile?.role) return profile.role as 'owner' | 'renter' | 'admin'
     if (i < retries - 1) await new Promise((r) => setTimeout(r, delay))
   }
   return null
@@ -48,10 +48,15 @@ export function useAuth() {
           try {
             const userRole = await fetchProfileWithRetry(currentUserId)
             if (useAuthStore.getState().session?.user?.id === currentUserId) {
-              store.setRole(userRole)
+              if (userRole) {
+                store.setRole(userRole)
+              } else {
+                store.setProfileError(true)
+              }
             }
           } catch (e) {
             console.error('Failed to fetch profile', e)
+            store.setProfileError(true)
           } finally {
             fetchingRef.current = false
           }

@@ -1,10 +1,12 @@
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
+import { useEffect } from 'react'
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
 import { Text, TextInput, Button, Surface, useTheme } from 'react-native-paper'
-import { Link } from 'expo-router'
+import { Link, router, useLocalSearchParams } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../../src/lib/supabase'
+import { useAuthStore } from '../../src/stores/authStore'
 
 const schema = z.object({
   email: z.string().email('Correo inválido'),
@@ -15,6 +17,22 @@ type LoginForm = z.infer<typeof schema>
 
 export default function LoginScreen() {
   const { colors } = useTheme()
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>()
+  const session = useAuthStore((s) => s.session)
+  const role = useAuthStore((s) => s.role)
+
+  useEffect(() => {
+    if (!session || !role) return
+    if (redirect && redirect.startsWith('/') && !redirect.includes('://')) {
+      router.replace(redirect as any)
+    } else if (role === 'admin') {
+      router.replace('/(admin)')
+    } else if (role === 'owner') {
+      router.replace('/(owner)')
+    } else {
+      router.replace('/(renter)')
+    }
+  }, [session, role])
 
   const { control, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<LoginForm>({
     resolver: zodResolver(schema),
@@ -25,9 +43,7 @@ export default function LoginScreen() {
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     if (signInError) {
       setError('root', { message: signInError.message })
-      return
     }
-    // Navigation handled by index.tsx via auth store
   }
 
   return (
@@ -35,7 +51,7 @@ export default function LoginScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll}>
         <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
           <Text variant="headlineLarge" style={[styles.title, { color: colors.primary }]}>
             Pinol-Rent
@@ -106,7 +122,7 @@ export default function LoginScreen() {
             </Text>
           </Link>
         </Surface>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }

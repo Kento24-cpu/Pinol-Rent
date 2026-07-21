@@ -52,7 +52,7 @@ export function FilterModal({ visible, onDismiss, current, onApply, tags }: Filt
   }
 
   return (
-    <Modal visible={visible} onDismiss={onDismiss} animationType="slide" transparent>
+    <Modal visible={visible} onDismiss={onDismiss} onRequestClose={onDismiss} animationType="slide" transparent>
         <View style={[styles.overlay, { backgroundColor: colors.backdrop }]}>
         <Surface style={[styles.modal, { backgroundColor: colors.surface }]} elevation={4}>
           <View style={styles.header}>

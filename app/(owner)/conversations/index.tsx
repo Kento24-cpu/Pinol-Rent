@@ -77,7 +77,7 @@ export default function OwnerConversationsScreen() {
                     </Text>
                     {item.latest_message && (
                       <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
-                        {new Date(item.latest_message.created_at ?? '').toLocaleDateString()}
+                        {item.latest_message.created_at ? new Date(item.latest_message.created_at).toLocaleDateString() : ''}
                       </Text>
                     )}
                   </View>

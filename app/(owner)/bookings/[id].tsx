@@ -58,12 +58,17 @@ export default function OwnerBookingDetailScreen() {
     )
   }
 
-  const statusColor = booking.status === 'pending' ? '#F9A825'
+  const statusColor = booking.status === 'pending_payment' ? '#E65100'
+    : booking.status === 'pending' ? '#F9A825'
     : booking.status === 'confirmed' ? '#2E7D32'
     : booking.status === 'cancelled' ? '#C62828'
     : '#1565C0'
 
-  const days = Math.round((new Date(booking.end_date).getTime() - new Date(booking.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1
+  const days = (() => {
+    if (!booking.start_date || !booking.end_date) return 0
+    const diff = Math.round((new Date(booking.end_date).getTime() - new Date(booking.start_date).getTime()) / (1000 * 60 * 60 * 24))
+    return Math.max(1, diff + 1)
+  })()
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -72,7 +77,8 @@ export default function OwnerBookingDetailScreen() {
           style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}
           textStyle={[styles.statusText, { color: statusColor }]}
         >
-          {booking.status === 'pending' ? 'Pendiente'
+          {booking.status === 'pending_payment' ? 'Esperando pago'
+            : booking.status === 'pending' ? 'Pendiente'
             : booking.status === 'confirmed' ? 'Confirmada'
             : booking.status === 'cancelled' ? 'Cancelada'
             : 'Completada'}
@@ -115,6 +121,14 @@ export default function OwnerBookingDetailScreen() {
           </Text>
         )}
       </Surface>
+
+      {booking.status === 'pending_payment' && (
+        <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>
+          <Text variant="bodyMedium" style={{ textAlign: 'center', color: colors.onSurfaceVariant }}>
+            El pago del arrendatario está siendo verificado por el equipo de Pinol-Rent. Recibirás una notificación cuando sea aprobado.
+          </Text>
+        </Surface>
+      )}
 
       {booking.status === 'pending' && (
         <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>

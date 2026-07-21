@@ -47,11 +47,12 @@ export function useChat(conversationId: number | null) {
               .select('full_name, avatar_url')
               .eq('id', raw.sender_id)
               .single()
-            senderCache.current[raw.sender_id] = sender ?? { full_name: '', avatar_url: null }
+            senderCache.current[raw.sender_id] = { full_name: sender?.full_name ?? '', avatar_url: sender?.avatar_url ?? null }
           }
+          const senderData = senderCache.current[raw.sender_id]
           const newMsg: MessageWithSender = {
             ...raw,
-            sender: senderCache.current[raw.sender_id],
+            sender: senderData ? { ...senderData, full_name: senderData.full_name ?? '' } : { full_name: '', avatar_url: null },
           }
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev
@@ -61,35 +62,42 @@ export function useChat(conversationId: number | null) {
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [conversationId])
+  }, [conversationId, user])
 
-  const sendMessage = async (content: string, attachment?: { uri: string; mimeType: string }) => {
+  const sendMessage = useCallback(async (content: string, attachment?: { uri: string; mimeType: string }) => {
     if (!user || !conversationId || (!content.trim() && !attachment)) return
     setSending(true)
-    let attachmentUrl: string | null = null
+    try {
+      let attachmentUrl: string | null = null
 
-    if (attachment) {
-      const ext = mimeToExt(attachment.mimeType) ?? 'jpg'
-      const path = `${user.id}/${Date.now()}.${ext}`
-      const blob = await uriToBlob(attachment.uri)
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('chat-attachments')
-        .upload(path, blob, { contentType: attachment.mimeType })
-      if (uploadError) { setSending(false); throw uploadError }
-      const { data: signedData } = await supabase.storage.from('chat-attachments').createSignedUrl(uploadData.path, 7 * 24 * 60 * 60)
-      attachmentUrl = signedData?.signedUrl ?? ''
+      if (attachment) {
+        const ext = mimeToExt(attachment.mimeType) ?? 'jpg'
+        const path = `${user.id}/${Date.now()}.${ext}`
+        const blob = await uriToBlob(attachment.uri)
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('chat-attachments')
+          .upload(path, blob, { contentType: attachment.mimeType })
+        if (uploadError) throw uploadError
+
+        const { data: signedData } = await supabase.storage
+          .from('chat-attachments')
+          .createSignedUrl(uploadData.path, 7 * 24 * 60 * 60)
+        attachmentUrl = signedData?.signedUrl ?? null
+      }
+
+      const { error: msgError } = await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: content.trim(),
+        attachment_url: attachmentUrl,
+      })
+      if (msgError) throw msgError
+
+      await supabase.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conversationId)
+    } finally {
+      setSending(false)
     }
-
-    await supabase.from('messages').insert({
-      conversation_id: conversationId,
-      sender_id: user.id,
-      content: content.trim(),
-      attachment_url: attachmentUrl,
-    })
-
-    await supabase.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conversationId)
-    setSending(false)
-  }
+  }, [user, conversationId])
 
   const markAsRead = useCallback(async () => {
     if (!user || !conversationId) return
@@ -99,6 +107,7 @@ export function useChat(conversationId: number | null) {
       .eq('conversation_id', conversationId)
       .neq('sender_id', user.id)
       .is('read_at', null)
+      .limit(100)
 
     if (unread && unread.length > 0) {
       await supabase.from('messages').update({ read_at: new Date().toISOString() }).in('id', unread.map((m) => m.id))

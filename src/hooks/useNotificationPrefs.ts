@@ -20,25 +20,32 @@ export function useNotificationPrefs() {
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULTS)
   const [loading, setLoading] = useState(true)
   const prefsRef = useRef(prefs)
-  prefsRef.current = prefs
+  useEffect(() => { prefsRef.current = prefs }, [prefs])
 
   const fetchPrefs = useCallback(async () => {
     if (!user) return
-    const { data } = await supabase
-      .from('notification_prefs')
-      .select('chat_push, booking_push, marketing')
-      .eq('user_id', user.id)
-      .maybeSingle()
-    if (data) setPrefs(data)
-    else {
-      const { data: inserted } = await supabase
+    try {
+      const { data: existing } = await supabase
         .from('notification_prefs')
-        .insert({ user_id: user.id, ...DEFAULTS })
         .select('chat_push, booking_push, marketing')
-        .single()
-      if (inserted) setPrefs(inserted)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (existing) {
+        setPrefs(existing)
+      } else {
+        const { data } = await supabase
+          .from('notification_prefs')
+          .insert({ user_id: user.id, ...DEFAULTS })
+          .select('chat_push, booking_push, marketing')
+          .single()
+        if (data) setPrefs(data)
+      }
+    } catch (e) {
+      console.error('Failed to fetch notification prefs', e)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [user])
 
   useEffect(() => { fetchPrefs() }, [fetchPrefs])

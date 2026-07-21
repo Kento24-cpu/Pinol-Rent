@@ -6,10 +6,10 @@ interface BookingCardBooking {
   start_date: string
   end_date: string
   total_price: number
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'pending_payment'
   car: { brand: string; model: string; image_url: string | null } | null
-  renter?: { full_name: string } | null
-  owner?: { full_name: string } | null
+  renter?: { full_name: string | null } | null
+  owner?: { full_name: string | null } | null
 }
 
 interface BookingCardProps {
@@ -20,6 +20,7 @@ interface BookingCardProps {
 
 const STATUS_COLORS: Record<string, string> = {
   pending: '#F9A825',
+  pending_payment: '#E65100',
   confirmed: '#2E7D32',
   cancelled: '#C62828',
   completed: '#1565C0',
@@ -27,6 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
+  pending_payment: 'Pendiente de pago',
   confirmed: 'Confirmada',
   cancelled: 'Cancelada',
   completed: 'Completada',

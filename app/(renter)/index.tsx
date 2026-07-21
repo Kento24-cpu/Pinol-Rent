@@ -8,6 +8,7 @@ import { CarCard } from '../../src/components/CarCard'
 import { DepartmentPicker } from '../../src/components/DepartmentPicker'
 import { FilterModal } from '../../src/components/FilterModal'
 import { useCars } from '../../src/hooks/useCars'
+import { useAuthStore } from '../../src/stores/authStore'
 import type { Tables } from '../../src/types/database'
 type Department = Tables<'departments'>
 type Tag = Tables<'tags'>
@@ -25,6 +26,7 @@ const EMPTY_FILTERS: FilterValues = { priceMin: '', priceMax: '', tagIds: [], so
 export default function RenterDashboard() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const session = useAuthStore((s) => s.session)
   const [rawQuery, setRawQuery] = useState('')
   const [query, setQuery] = useState('')
   const [departmentId, setDepartmentId] = useState<number | null>(null)
@@ -79,6 +81,22 @@ export default function RenterDashboard() {
         <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: colors.onBackground }}>
           Buscar autos
         </Text>
+        <View style={styles.headerActions}>
+          {session ? (
+            <Button mode="text" icon="account" onPress={() => router.push('/(renter)/profile')} compact>
+              Perfil
+            </Button>
+          ) : (
+            <>
+              <Button mode="text" onPress={() => router.push('/(public)/login')} compact>
+                Iniciar sesión
+              </Button>
+              <Button mode="contained" onPress={() => router.push('/(public)/register')} compact>
+                Registro
+              </Button>
+            </>
+          )}
+        </View>
       </View>
 
       <View style={styles.filters}>
@@ -196,6 +214,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 16,
   },
+  headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   filters: { paddingHorizontal: 16, marginBottom: 8 },
   search: { marginBottom: 8 },
   searchRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },

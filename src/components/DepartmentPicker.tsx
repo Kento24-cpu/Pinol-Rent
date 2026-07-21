@@ -38,6 +38,7 @@ export function DepartmentPicker({ departments, value, onChange }: DepartmentPic
       <Modal
         visible={visible}
         onDismiss={() => setVisible(false)}
+        onRequestClose={() => setVisible(false)}
         animationType="slide"
         transparent
       >

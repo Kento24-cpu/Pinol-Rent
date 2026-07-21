@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Stack } from 'expo-router'
 import { PaperProvider } from 'react-native-paper'
 import { StatusBar } from 'expo-status-bar'
@@ -8,15 +7,10 @@ import { useAuth } from '../src/hooks/useAuth'
 import { usePushNotifications } from '../src/hooks/usePushNotifications'
 import { NetworkProvider } from '../src/hooks/useNetwork'
 import { ErrorBoundary } from '../src/components/ErrorBoundary'
-import { clearStaleCache } from '../src/lib/db'
 
 export default function RootLayout() {
   useAuth()
   usePushNotifications()
-
-  useEffect(() => {
-    clearStaleCache()
-  }, [])
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -29,6 +23,7 @@ export default function RootLayout() {
               <Stack.Screen name="(public)" />
               <Stack.Screen name="(owner)" />
               <Stack.Screen name="(renter)" />
+              <Stack.Screen name="(admin)" />
             </Stack>
           </ErrorBoundary>
         </NetworkProvider>

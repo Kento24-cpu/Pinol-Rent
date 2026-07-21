@@ -12,7 +12,7 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsub = NetInfo.addEventListener((state) => {
-      setIsOnline(state.isConnected ?? true)
+      setIsOnline(state.isConnected ?? false)
     })
     return () => unsub()
   }, [])

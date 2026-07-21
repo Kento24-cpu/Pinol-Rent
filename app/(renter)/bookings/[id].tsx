@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
-import { View, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Chip, Snackbar, useTheme, Icon, TextInput, Portal, Dialog } from 'react-native-paper'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { useReviews } from '../../../src/hooks/useReviews'
 import { RatingInput } from '../../../src/components/RatingInput'
@@ -40,7 +40,33 @@ export default function RenterBookingDetailScreen() {
     setLoading(false)
   }, [bookingId, fetchBooking, fetchBookingReview])
 
-  useEffect(() => { load() }, [load])
+  useFocusEffect(useCallback(() => { load() }, [load]))
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`booking-${bookingId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'bookings',
+        filter: `id=eq.${bookingId}`,
+      }, (payload) => {
+        const newStatus = (payload.new as { status?: string }).status
+        const oldStatus = (payload.old as { status?: string }).status
+        if (newStatus && newStatus !== oldStatus) {
+          load()
+          const label = newStatus === 'confirmed' ? 'confirmada'
+            : newStatus === 'cancelled' ? 'cancelada'
+            : newStatus === 'completed' ? 'completada'
+            : newStatus === 'pending' ? 'pendiente de confirmación'
+            : newStatus
+          setSnackbar({ visible: true, message: `Reserva ${label}` })
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [bookingId, load])
 
   const handleCancel = async () => {
     setUpdating(true)
@@ -71,7 +97,8 @@ export default function RenterBookingDetailScreen() {
     )
   }
 
-  const statusColor = booking.status === 'pending' ? '#F9A825'
+  const statusColor = booking.status === 'pending_payment' ? '#E65100'
+    : booking.status === 'pending' ? '#F9A825'
     : booking.status === 'confirmed' ? '#2E7D32'
     : booking.status === 'cancelled' ? '#C62828'
     : '#1565C0'
@@ -85,7 +112,8 @@ export default function RenterBookingDetailScreen() {
           style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}
           textStyle={[styles.statusText, { color: statusColor }]}
         >
-          {booking.status === 'pending' ? 'Pendiente'
+          {booking.status === 'pending_payment' ? 'Pago pendiente'
+            : booking.status === 'pending' ? 'Pendiente'
             : booking.status === 'confirmed' ? 'Confirmada'
             : booking.status === 'cancelled' ? 'Cancelada'
             : 'Completada'}
@@ -119,6 +147,25 @@ export default function RenterBookingDetailScreen() {
           </Text>
         )}
       </Surface>
+
+      {booking.status === 'pending_payment' && (
+        <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>
+          <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 12, color: colors.onSurfaceVariant }}>
+            Tu pago está siendo revisado. Te notificaremos cuando sea aprobado.
+          </Text>
+          <Button
+            mode="outlined"
+            icon="close"
+            textColor={colors.error}
+            onPress={handleCancel}
+            loading={updating}
+            disabled={updating}
+            style={styles.cancelBtn}
+          >
+            Cancelar solicitud
+          </Button>
+        </Surface>
+      )}
 
       {booking.status === 'pending' && (
         <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>

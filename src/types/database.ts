@@ -39,6 +39,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      _settings: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value: string
+        }
+        Update: {
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           car_id: number
@@ -120,136 +135,6 @@ export type Database = {
           },
         ]
       }
-      conversations: {
-        Row: {
-          id: number
-          car_id: number
-          renter_id: string
-          owner_id: string
-          booking_id: number | null
-          last_message_at: string | null
-          created_at: string | null
-        }
-        Insert: {
-          car_id: number
-          renter_id: string
-          owner_id: string
-          booking_id?: number | null
-          last_message_at?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          car_id?: number
-          renter_id?: string
-          owner_id?: string
-          booking_id?: number | null
-          last_message_at?: string | null
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "conversations_car_id_fkey"
-            columns: ["car_id"]
-            isOneToOne: false
-            referencedRelation: "cars"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversations_renter_id_fkey"
-            columns: ["renter_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversations_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversations_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      push_tokens: {
-        Row: {
-          id: number
-          user_id: string
-          token: string
-          platform: string
-          created_at: string | null
-        }
-        Insert: {
-          user_id: string
-          token: string
-          platform?: string
-          created_at?: string | null
-        }
-        Update: {
-          user_id?: string
-          token?: string
-          platform?: string
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "push_tokens_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      messages: {
-        Row: {
-          id: number
-          conversation_id: number
-          sender_id: string
-          content: string
-          attachment_url: string | null
-          read_at: string | null
-          created_at: string | null
-        }
-        Insert: {
-          conversation_id: number
-          sender_id: string
-          content: string
-          attachment_url?: string | null
-          read_at?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          conversation_id?: number
-          sender_id?: string
-          content?: string
-          attachment_url?: string | null
-          read_at?: string | null
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       cars: {
         Row: {
           available: boolean | null
@@ -319,6 +204,65 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          booking_id: number | null
+          car_id: number
+          created_at: string | null
+          id: number
+          last_message_at: string | null
+          owner_id: string
+          renter_id: string
+        }
+        Insert: {
+          booking_id?: number | null
+          car_id: number
+          created_at?: string | null
+          id?: never
+          last_message_at?: string | null
+          owner_id: string
+          renter_id: string
+        }
+        Update: {
+          booking_id?: number | null
+          car_id?: number
+          created_at?: string | null
+          id?: never
+          last_message_at?: string | null
+          owner_id?: string
+          renter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_car_id_fkey"
+            columns: ["car_id"]
+            isOneToOne: false
+            referencedRelation: "cars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_renter_id_fkey"
+            columns: ["renter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           id: number
@@ -337,90 +281,285 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          attachment_url: string | null
+          content: string
+          conversation_id: number
+          created_at: string | null
+          id: number
+          read_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          content: string
+          conversation_id: number
+          created_at?: string | null
+          id?: never
+          read_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          attachment_url?: string | null
+          content?: string
+          conversation_id?: number
+          created_at?: string | null
+          id?: never
+          read_at?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_prefs: {
+        Row: {
+          booking_push: boolean
+          chat_push: boolean
+          created_at: string
+          marketing: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_push?: boolean
+          chat_push?: boolean
+          created_at?: string
+          marketing?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_push?: boolean
+          chat_push?: boolean
+          created_at?: string
+          marketing?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_prefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          data: Json | null
+          id: number
+          read: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: never
+          read?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: never
+          read?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_intents: {
+        Row: {
+          amount: number
+          booking_id: number
+          card_encrypted: string
+          card_holder: string
+          card_last_four: string
+          created_at: string
+          expires_at: string
+          id: number
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          booking_id: number
+          card_encrypted: string
+          card_holder: string
+          card_last_four: string
+          created_at?: string
+          expires_at?: string
+          id?: never
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: number
+          card_encrypted?: string
+          card_holder?: string
+          card_last_four?: string
+          created_at?: string
+          expires_at?: string
+          id?: never
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_intents_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_intents_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          business_address: string | null
           business_name: string | null
+          cedula: string | null
           created_at: string | null
-          full_name: string
+          full_name: string | null
           id: string
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
           avatar_url?: string | null
+          business_address?: string | null
           business_name?: string | null
+          cedula?: string | null
           created_at?: string | null
-          full_name: string
+          full_name?: string | null
           id: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
           avatar_url?: string | null
+          business_address?: string | null
           business_name?: string | null
+          cedula?: string | null
           created_at?: string | null
-          full_name?: string
+          full_name?: string | null
           id?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: []
       }
-      tags: {
+      push_tokens: {
         Row: {
+          created_at: string | null
           id: number
-          name: string
-          slug: string
+          platform: string
+          token: string
+          user_id: string
         }
         Insert: {
+          created_at?: string | null
           id?: never
-          name: string
-          slug: string
+          platform?: string
+          token: string
+          user_id: string
         }
         Update: {
+          created_at?: string | null
           id?: never
-          name?: string
-          slug?: string
+          platform?: string
+          token?: string
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reviews: {
         Row: {
-          id: number
           booking_id: number
           car_id: number
-          renter_id: string
-          rating: number
           comment: string | null
-          created_at: string | null
-          updated_at: string | null
+          created_at: string
+          id: number
+          rating: number
+          renter_id: string
+          updated_at: string
         }
         Insert: {
-          id?: never
           booking_id: number
           car_id: number
-          renter_id: string
-          rating: number
           comment?: string | null
-          created_at?: string | null
-          updated_at?: string | null
+          created_at?: string
+          id?: never
+          rating: number
+          renter_id: string
+          updated_at?: string
         }
         Update: {
-          id?: never
           booking_id?: number
           car_id?: number
-          renter_id?: string
-          rating?: number
           comment?: string | null
-          created_at?: string | null
-          updated_at?: string | null
+          created_at?: string
+          id?: never
+          rating?: number
+          renter_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "reviews_booking_id_fkey"
             columns: ["booking_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -440,58 +579,104 @@ export type Database = {
           },
         ]
       }
-      notification_prefs: {
+      tags: {
         Row: {
-          user_id: string
-          chat_push: boolean
-          booking_push: boolean
-          marketing: boolean
-          created_at: string | null
-          updated_at: string | null
+          id: number
+          name: string
+          slug: string
         }
         Insert: {
-          user_id: string
-          chat_push?: boolean
-          booking_push?: boolean
-          marketing?: boolean
-          created_at?: string | null
-          updated_at?: string | null
+          id?: never
+          name: string
+          slug: string
         }
         Update: {
-          user_id?: string
-          chat_push?: boolean
-          booking_push?: boolean
-          marketing?: boolean
-          created_at?: string | null
-          updated_at?: string | null
+          id?: never
+          name?: string
+          slug?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "notification_prefs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      approve_payment_intent: {
+        Args: { p_admin_id: string; p_payment_intent_id: number }
+        Returns: boolean
+      }
+      decline_payment_intent: {
+        Args: { p_admin_id: string; p_payment_intent_id: number }
+        Returns: boolean
+      }
+      decrypt_payment_preview: {
+        Args: { p_payment_intent_id: number }
+        Returns: {
+          amount: number
+          booking_status: string
+          card_holder: string
+          card_last_four: string
+          created_at: string
+        }[]
+      }
+      expire_stale_payment_intents: { Args: never; Returns: number }
+      get_all_bookings: {
+        Args: never
+        Returns: {
+          car_brand: string
+          car_id: number
+          car_model: string
+          created_at: string
+          end_date: string
+          id: number
+          payment_intent_id: number
+          payment_status: string
+          renter_email: string
+          renter_id: string
+          renter_name: string
+          renter_phone: string
+          start_date: string
+          status: string
+          total_price: number
+        }[]
+      }
+      get_pending_payment_intents: {
+        Args: never
+        Returns: {
+          amount: number
+          booking_id: number
+          brand: string
+          card_holder: string
+          card_last_four: string
+          created_at: string
+          expires_at: string
+          id: number
+          model: string
+          renter_email: string
+          renter_name: string
+          status: string
+        }[]
+      }
+      is_admin: { Args: never; Returns: boolean }
       is_car_available: {
         Args: {
           p_car_id: number
-          p_start_date: string
           p_end_date: string
           p_exclude_booking_id?: number
+          p_start_date: string
         }
         Returns: boolean
       }
     }
     Enums: {
-      user_role: "owner" | "renter"
+      booking_status:
+        | "pending"
+        | "confirmed"
+        | "cancelled"
+        | "completed"
+        | "pending_payment"
+      user_role: "owner" | "renter" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -622,7 +807,14 @@ export const Constants = {
   },
   public: {
     Enums: {
-      user_role: ["owner", "renter"],
+      booking_status: [
+        "pending",
+        "confirmed",
+        "cancelled",
+        "completed",
+        "pending_payment",
+      ],
+      user_role: ["owner", "renter", "admin"],
     },
   },
 } as const

@@ -1,15 +1,31 @@
 import { useState, useCallback } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native'
-import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge } from 'react-native-paper'
+import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge, Button } from 'react-native-paper'
 import { router, useFocusEffect } from 'expo-router'
+import { useAuthStore } from '../../../src/stores/authStore'
 import { useConversations } from '../../../src/hooks/useConversations'
 
 export default function RenterConversationsScreen() {
   const { colors } = useTheme()
+  const session = useAuthStore((s) => s.session)
   const { conversations, loading, refetch } = useConversations()
   const [search, setSearch] = useState('')
 
   useFocusEffect(useCallback(() => { refetch() }, [refetch]))
+
+  if (!session) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Icon source="forum-lock" size={48} color={colors.onSurfaceVariant} />
+        <Text variant="titleMedium" style={{ marginTop: 16, color: colors.onSurface }}>
+          Inicia sesión para ver tus mensajes
+        </Text>
+        <Button mode="contained" onPress={() => router.push('/(public)/login')} style={{ marginTop: 20 }}>
+          Iniciar sesión
+        </Button>
+      </View>
+    )
+  }
 
   const filtered = search.trim()
     ? conversations.filter((c) =>
@@ -71,7 +87,7 @@ export default function RenterConversationsScreen() {
                     </Text>
                     {item.latest_message && (
                       <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
-                        {new Date(item.latest_message.created_at ?? '').toLocaleDateString()}
+                        {item.latest_message.created_at ? new Date(item.latest_message.created_at).toLocaleDateString() : ''}
                       </Text>
                     )}
                   </View>

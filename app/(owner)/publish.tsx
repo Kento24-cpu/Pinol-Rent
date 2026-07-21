@@ -76,7 +76,7 @@ export default function PublishScreen() {
     if (result.canceled || !user) return
 
     setUploading(true)
-    const file = result.assets[0]
+    const file = result.assets[0]!
     const ext = mimeToExt(file.mimeType) ?? 'jpg'
     const path = `${user.id}/${Date.now()}.${ext}`
 
