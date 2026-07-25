@@ -15,7 +15,7 @@ function timeAgo(dateStr: string): string {
   if (hrs < 24) return `Hace ${hrs}h`
   const days = Math.floor(hrs / 24)
   if (days < 7) return `Hace ${days}d`
-  return new Date(dateStr).toLocaleDateString('es-NI', { day: 'numeric', month: 'short' })
+  return new Date(dateStr).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 }
 
 function notificationData(data: unknown): Record<string, unknown> {

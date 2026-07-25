@@ -143,6 +143,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           department_id: number | null
+          deposit_per_day: number | null
           description: string | null
           id: number
           image_url: string | null
@@ -160,6 +161,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           department_id?: number | null
+          deposit_per_day?: number | null
           description?: string | null
           id?: never
           image_url?: string | null
@@ -177,6 +179,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           department_id?: number | null
+          deposit_per_day?: number | null
           description?: string | null
           id?: never
           image_url?: string | null

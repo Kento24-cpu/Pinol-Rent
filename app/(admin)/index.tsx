@@ -55,7 +55,7 @@ export default function AdminDashboard() {
                   {item.brand} {item.model}
                 </Text>
                 <Chip style={styles.chip} textStyle={styles.chipText}>
-                  ${item.amount.toLocaleString('es-NI')}
+                  ${item.amount.toLocaleString()}
                 </Chip>
               </View>
               <View style={styles.cardBody}>
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
                 <View style={styles.row}>
                   <Icon source="clock" size={16} color={colors.onSurfaceVariant} />
                   <Text variant="bodyMedium" style={{ marginLeft: 6 }}>
-                    {new Date(item.expires_at).toLocaleString('es-NI')}
+                    {new Date(item.expires_at).toLocaleString()}
                   </Text>
                 </View>
               </View>

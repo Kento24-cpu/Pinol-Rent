@@ -1,6 +1,7 @@
 import { View, Image, StyleSheet } from 'react-native'
 import { Text, Card, Chip, Icon, useTheme } from 'react-native-paper'
 import { RATING_COLOR } from '../lib/theme'
+import { useState } from 'react'
 
 interface CarCardCar {
   id: number
@@ -8,6 +9,7 @@ interface CarCardCar {
   model: string
   year: number
   price_per_day: number
+  deposit_per_day: number | null
   department_name: string
   available: boolean
   business_name: string | null
@@ -25,6 +27,7 @@ interface CarCardProps {
 
 export function CarCard({ car, onPress }: CarCardProps) {
   const { colors } = useTheme()
+  const [imageError, setImageError] = useState(false)
 
   return (
     <Card
@@ -33,9 +36,13 @@ export function CarCard({ car, onPress }: CarCardProps) {
       mode="elevated"
       elevation={2}
     >
-      {car.image_url ? (
-        <Card.Cover source={{ uri: car.image_url }} style={styles.cover} />
-      ) : null}
+      {car.image_url && !imageError ? (
+        <Card.Cover source={{ uri: car.image_url }} style={styles.cover} onError={() => setImageError(true)} />
+      ) : (
+        <View style={[styles.coverPlaceholder, { backgroundColor: colors.primaryContainer }]}>
+          <Icon source="car" size={40} color={colors.onSurfaceVariant} />
+        </View>
+      )}
       <Card.Content>
         <View style={styles.topRow}>
           <Icon source="domain" size={16} color={colors.primary} />
@@ -83,6 +90,12 @@ export function CarCard({ car, onPress }: CarCardProps) {
           ${car.price_per_day}/día
         </Text>
 
+        {car.deposit_per_day && (
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginBottom: 8 }}>
+            Depósito: ${car.deposit_per_day}/día
+          </Text>
+        )}
+
         {car.tags.length > 0 && (
           <View style={styles.tags}>
             {car.tags.slice(0, 4).map((tag) => (
@@ -105,6 +118,7 @@ export function CarCard({ car, onPress }: CarCardProps) {
 const styles = StyleSheet.create({
   card: { marginHorizontal: 16, marginVertical: 10, borderRadius: 16 },
   cover: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180 },
+  coverPlaceholder: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180, justifyContent: 'center', alignItems: 'center' },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   businessName: { fontWeight: 'bold', marginLeft: 6, flex: 1 },
   badge: { paddingHorizontal: 10, paddingVertical: 2, borderRadius: 20 },

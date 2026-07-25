@@ -13,6 +13,7 @@ import type { CarWithRelations } from '../../src/types/database.types'
 export default function CarDetailScreen() {
   const { id } = useLocalSearchParams()
   const { colors } = useTheme()
+  const [imageError, setImageError] = useState(false)
   const insets = useSafeAreaInsets()
   const userId = useAuthStore((s) => s.session?.user?.id)
   const { reviews, fetchCarReviews } = useReviews()
@@ -31,7 +32,7 @@ export default function CarDetailScreen() {
     }
     supabase
       .from('cars')
-      .select('*, department:department_id(name), profile:owner_id(full_name, business_name, phone), car_tags(tag:tag_id(name, slug))')
+      .select('*, deposit_per_day, department:department_id(name), profile:owner_id(full_name, business_name, phone), car_tags(tag:tag_id(name, slug))')
       .eq('id', carId)
       .single()
       .then(({ data, error }) => {
@@ -69,8 +70,8 @@ export default function CarDetailScreen() {
         <Icon source="arrow-left" size={24} color={colors.surface} />
       </TouchableOpacity>
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-        {car.image_url ? (
-          <Image source={{ uri: car.image_url }} style={styles.image} resizeMode="cover" />
+        {car.image_url && !imageError ? (
+          <Image source={{ uri: car.image_url }} style={styles.image} resizeMode="cover" onError={() => setImageError(true)} />
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: colors.primaryContainer }]}>
             <Icon source="car" size={80} color={colors.onSurfaceVariant} />
@@ -96,6 +97,12 @@ export default function CarDetailScreen() {
           <Text variant="headlineMedium" style={[styles.price, { color: colors.primary }]}>
             ${car.price_per_day} <Text variant="bodyMedium">/ día</Text>
           </Text>
+
+          {car.deposit_per_day && (
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 4 }}>
+              Depósito: ${car.deposit_per_day}/día
+            </Text>
+          )}
 
               {(car.reviews_count ?? 0) > 0 && (
             <View style={styles.ratingRow}>

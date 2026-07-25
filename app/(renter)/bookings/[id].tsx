@@ -103,7 +103,8 @@ export default function RenterBookingDetailScreen() {
     : booking.status === 'cancelled' ? '#C62828'
     : '#1565C0'
 
-  const days = Math.round((new Date(booking.end_date).getTime() - new Date(booking.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1
+  const parseDate = (s: string) => { const [y, m, d] = s.split('-'); return new Date(Number(y), Number(m) - 1, Number(d)) }
+  const days = Math.round((parseDate(booking.end_date).getTime() - parseDate(booking.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -138,7 +139,7 @@ export default function RenterBookingDetailScreen() {
         <View style={[styles.divider, { backgroundColor: colors.outline }]} />
 
         <Text variant="titleLarge" style={[styles.price, { color: colors.primary }]}>
-          ${booking.total_price.toLocaleString('es-NI')}
+          ${booking.total_price.toLocaleString()}
         </Text>
 
         {booking.unit_price && (

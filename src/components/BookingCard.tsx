@@ -1,5 +1,6 @@
 import { View, Image, StyleSheet } from 'react-native'
 import { Text, Card, Chip, Icon, useTheme } from 'react-native-paper'
+import { useState } from 'react'
 
 interface BookingCardBooking {
   id: number
@@ -36,6 +37,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function BookingCard({ booking, onPress, showUser }: BookingCardProps) {
   const { colors } = useTheme()
+  const [imageError, setImageError] = useState(false)
   const statusColor = STATUS_COLORS[booking.status] ?? colors.onSurfaceVariant
 
   return (
@@ -46,8 +48,8 @@ export function BookingCard({ booking, onPress, showUser }: BookingCardProps) {
       elevation={2}
     >
       <View style={styles.row}>
-        {booking.car?.image_url ? (
-          <Image source={{ uri: booking.car.image_url }} style={styles.image} />
+        {booking.car?.image_url && !imageError ? (
+          <Image source={{ uri: booking.car.image_url }} style={styles.image} onError={() => setImageError(true)} />
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: colors.primaryContainer }]}>
             <Icon source="car" size={28} color={colors.onSurfaceVariant} />
@@ -61,7 +63,7 @@ export function BookingCard({ booking, onPress, showUser }: BookingCardProps) {
             {booking.start_date} → {booking.end_date}
           </Text>
           <Text variant="titleSmall" style={[styles.price, { color: colors.primary }]}>
-            ${booking.total_price.toLocaleString('es-NI')}
+            ${booking.total_price.toLocaleString()}
           </Text>
           {showUser === 'renter' && booking.renter && (
             <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>

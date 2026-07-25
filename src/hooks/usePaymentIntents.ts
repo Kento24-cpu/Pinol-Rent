@@ -74,7 +74,9 @@ export function usePaymentIntents() {
       console.warn('[usePaymentIntents] decrypt-card-info error:', error.message)
       throw new Error(error.message)
     }
-    console.log('[usePaymentIntents] decrypt-card-info response:', JSON.stringify(data))
+    if (!data || typeof data !== 'object' || !('card_number' in data)) {
+      throw new Error('Acceso denegado')
+    }
     return data as { card_number: string; card_holder: string; expiry: string }
   }, [])
 

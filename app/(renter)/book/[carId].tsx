@@ -14,12 +14,12 @@ export default function BookCarScreen() {
   const user = useAuthStore((s) => s.session?.user)
   const { createBooking, checkAvailability } = useBookings()
   const { submitCardPayment } = usePaymentIntents()
-  const [car, setCar] = useState<{ brand: string; model: string; price_per_day: number } | null>(null)
+  const [car, setCar] = useState<{ brand: string; model: string; price_per_day: number; deposit_per_day: number | null } | null>(null)
   const [loading, setLoading] = useState(true)
-  const [booking, setBooking] = useState(false)
   const [fetchError, setFetchError] = useState(false)
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
+  const [booking, setBooking] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [bookingId, setBookingId] = useState<number | null>(null)
   const [totalPrice, setTotalPrice] = useState(0)
@@ -36,7 +36,7 @@ export default function BookCarScreen() {
     if (!carId || isNaN(carId)) { setFetchError(true); setLoading(false); return }
     supabase
       .from('cars')
-      .select('brand, model, price_per_day')
+      .select('brand, model, price_per_day, deposit_per_day')
       .eq('id', carId)
       .single()
       .then(({ data }) => {
@@ -59,7 +59,7 @@ export default function BookCarScreen() {
         setBooking(false)
         return
       }
-      const id = await createBooking({ carId, startDate, endDate, status: 'pending_payment' })
+      const id = await createBooking({ carId, startDate, endDate, totalPrice: price, status: 'pending_payment' })
       setBookingId(id)
       setTotalPrice(price)
       setDays(daysCount)
@@ -115,7 +115,15 @@ export default function BookCarScreen() {
             <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>
               {car?.brand} {car?.model}
             </Text>
-            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 4 }}>
+            <Text variant="titleMedium" style={[styles.price, { color: colors.primary }]}>
+              ${car?.price_per_day} / día
+            </Text>
+            {car?.deposit_per_day && (
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 2 }}>
+                Depósito: ${car.deposit_per_day}/día
+              </Text>
+            )}
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
               Datos de pago
             </Text>
           </Surface>
@@ -157,7 +165,7 @@ export default function BookCarScreen() {
               disabled={submittingPayment}
               style={styles.button}
             >
-              Pagar ${totalPrice.toLocaleString('es-NI')} ({days} días)
+              Pagar ${totalPrice.toLocaleString()} ({days} días)
             </Button>
           </Surface>
         </View>

@@ -74,7 +74,7 @@ export default function AdminBookingsScreen() {
           <View style={styles.row}>
             <Icon source="currency-usd" size={16} color={colors.primary} />
             <Text variant="bodyMedium" style={{ marginLeft: 6, fontWeight: 'bold', color: colors.primary }}>
-              ${Number(item.total_price).toLocaleString('es-NI')}
+              ${Number(item.total_price).toLocaleString()}
             </Text>
           </View>
           {paymentStatus && (
@@ -86,7 +86,7 @@ export default function AdminBookingsScreen() {
             </View>
           )}
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 4 }}>
-            Creado: {new Date(item.created_at).toLocaleString('es-NI')}
+            Creado: {new Date(item.created_at).toLocaleString()}
           </Text>
         </View>
       </Surface>

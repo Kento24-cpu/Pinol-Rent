@@ -64,9 +64,10 @@ export default function OwnerBookingDetailScreen() {
     : booking.status === 'cancelled' ? '#C62828'
     : '#1565C0'
 
+  const parseDate = (s: string) => { const [y, m, d] = s.split('-'); return new Date(Number(y), Number(m) - 1, Number(d)) }
   const days = (() => {
     if (!booking.start_date || !booking.end_date) return 0
-    const diff = Math.round((new Date(booking.end_date).getTime() - new Date(booking.start_date).getTime()) / (1000 * 60 * 60 * 24))
+    const diff = Math.round((parseDate(booking.end_date).getTime() - parseDate(booking.start_date).getTime()) / (1000 * 60 * 60 * 24))
     return Math.max(1, diff + 1)
   })()
 
@@ -112,7 +113,7 @@ export default function OwnerBookingDetailScreen() {
         <View style={[styles.divider, { backgroundColor: colors.outline }]} />
 
         <Text variant="titleLarge" style={[styles.price, { color: colors.primary }]}>
-          ${booking.total_price.toLocaleString('es-NI')}
+          ${booking.total_price.toLocaleString()}
         </Text>
 
         {booking.unit_price && (

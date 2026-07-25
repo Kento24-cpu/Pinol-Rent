@@ -147,14 +147,14 @@ export default function PaymentDetailScreen() {
         <View style={styles.row}>
           <Icon source="currency-usd" size={20} color={colors.primary} />
           <Text variant="titleLarge" style={{ marginLeft: 12, fontWeight: 'bold', color: colors.primary }}>
-            ${preview.amount.toLocaleString('es-NI')}
+            ${preview.amount.toLocaleString()}
           </Text>
         </View>
 
         <View style={styles.row}>
           <Icon source="calendar" size={20} color={colors.onSurfaceVariant} />
           <Text variant="bodyMedium" style={{ marginLeft: 12, color: colors.onSurfaceVariant }}>
-            {new Date(preview.created_at).toLocaleString('es-NI')}
+            {new Date(preview.created_at).toLocaleString()}
           </Text>
         </View>
       </Surface>

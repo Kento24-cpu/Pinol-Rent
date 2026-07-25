@@ -1,4 +1,4 @@
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { useEffect } from 'react'
 import { Text, TextInput, Button, Surface, SegmentedButtons, useTheme } from 'react-native-paper'
 import { Link } from 'expo-router'
@@ -99,228 +99,238 @@ export default function RegisterScreen() {
     }
   }
 
+  const isNative = Platform.OS !== 'web'
+
+  const formContent = (
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
+      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
+        <Text variant="headlineMedium" style={[styles.title, { color: colors.primary }]}>
+          Crear cuenta
+        </Text>
+
+        {errors.root ? (
+          <Text style={[styles.error, { color: colors.error }]}>{errors.root.message}</Text>
+        ) : null}
+
+        {!isAdminMode && (
+          <>
+            <Text variant="bodyMedium" style={styles.roleLabel}>
+              ¿Qué tipo de cuenta quieres?
+            </Text>
+
+            <Controller
+              control={control}
+              name="role"
+              render={({ field: { value } }) => (
+                <SegmentedButtons
+                  value={value}
+                  onValueChange={(v) => setValue('role', v as 'owner' | 'renter')}
+                  buttons={[
+                    { value: 'owner', label: 'Publicar autos' },
+                    { value: 'renter', label: 'Rentar autos' },
+                  ]}
+                  style={styles.segment}
+                />
+              )}
+            />
+          </>
+        )}
+
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              label="Correo electrónico"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              mode="outlined"
+              style={styles.input}
+              disabled={isSubmitting}
+              error={!!errors.email}
+            />
+          )}
+        />
+        {errors.email ? (
+          <Text style={[styles.fieldError, { color: colors.error }]}>{errors.email.message}</Text>
+        ) : null}
+
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              label="Contraseña"
+              value={value}
+              onChangeText={onChange}
+              secureTextEntry
+              mode="outlined"
+              style={styles.input}
+              disabled={isSubmitting}
+              error={!!errors.password}
+            />
+          )}
+        />
+        {errors.password ? (
+          <Text style={[styles.fieldError, { color: colors.error }]}>{errors.password.message}</Text>
+        ) : null}
+
+        {!isAdminMode && (
+          <>
+            <Controller
+              control={control}
+              name="cedula"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  label="Cédula de identidad"
+                  value={value ?? ''}
+                  onChangeText={onChange}
+                  mode="outlined"
+                  style={styles.input}
+                  disabled={isSubmitting}
+                  error={!!errors.cedula}
+                />
+              )}
+            />
+            {errors.cedula ? (
+              <Text style={[styles.fieldError, { color: colors.error }]}>{errors.cedula.message}</Text>
+            ) : null}
+
+            <Controller
+              control={control}
+              name="phone"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  label="Teléfono"
+                  value={value ?? ''}
+                  onChangeText={onChange}
+                  mode="outlined"
+                  style={styles.input}
+                  disabled={isSubmitting}
+                  keyboardType="phone-pad"
+                  error={!!errors.phone}
+                />
+              )}
+            />
+            {errors.phone ? (
+              <Text style={[styles.fieldError, { color: colors.error }]}>{errors.phone.message}</Text>
+            ) : null}
+
+            {role === 'renter' && (
+              <>
+                <Controller
+                  control={control}
+                  name="fullName"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      label="Nombre completo"
+                      value={value ?? ''}
+                      onChangeText={onChange}
+                      mode="outlined"
+                      style={styles.input}
+                      disabled={isSubmitting}
+                      error={!!errors.fullName}
+                    />
+                  )}
+                />
+                {errors.fullName ? (
+                  <Text style={[styles.fieldError, { color: colors.error }]}>{errors.fullName.message}</Text>
+                ) : null}
+              </>
+            )}
+
+            {role === 'owner' && (
+              <>
+                <Controller
+                  control={control}
+                  name="businessName"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      label="Nombre de la empresa"
+                      value={value ?? ''}
+                      onChangeText={onChange}
+                      mode="outlined"
+                      style={styles.input}
+                      disabled={isSubmitting}
+                      error={!!errors.businessName}
+                    />
+                  )}
+                />
+                {errors.businessName ? (
+                  <Text style={[styles.fieldError, { color: colors.error }]}>{errors.businessName.message}</Text>
+                ) : null}
+
+                <Controller
+                  control={control}
+                  name="businessAddress"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      label="Dirección de la empresa"
+                      value={value ?? ''}
+                      onChangeText={onChange}
+                      mode="outlined"
+                      style={styles.input}
+                      disabled={isSubmitting}
+                      error={!!errors.businessAddress}
+                    />
+                  )}
+                />
+                {errors.businessAddress ? (
+                  <Text style={[styles.fieldError, { color: colors.error }]}>{errors.businessAddress.message}</Text>
+                ) : null}
+              </>
+            )}
+          </>
+        )}
+
+        <Controller
+          control={control}
+          name="adminCode"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              label="Código de administrador (opcional)"
+              value={value ?? ''}
+              onChangeText={onChange}
+              mode="outlined"
+              style={styles.input}
+              disabled={isSubmitting}
+              secureTextEntry
+            />
+          )}
+        />
+
+        <Button
+          mode="contained"
+          onPress={handleSubmit(onSubmit)}
+          loading={isSubmitting}
+          disabled={isSubmitting}
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+        >
+          Registrarse
+        </Button>
+
+        <Link href="/login" style={styles.link}>
+          <Text style={{ color: colors.primary, textAlign: 'center' }}>
+            ¿Ya tienes cuenta? Inicia sesión
+          </Text>
+        </Link>
+      </Surface>
+    </ScrollView>
+  )
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
-          <Text variant="headlineMedium" style={[styles.title, { color: colors.primary }]}>
-            Crear cuenta
-          </Text>
-
-          {errors.root ? (
-            <Text style={[styles.error, { color: colors.error }]}>{errors.root.message}</Text>
-          ) : null}
-
-          {!isAdminMode && (
-            <>
-              <Text variant="bodyMedium" style={styles.roleLabel}>
-                ¿Qué tipo de cuenta quieres?
-              </Text>
-
-              <Controller
-                control={control}
-                name="role"
-                render={({ field: { value } }) => (
-                  <SegmentedButtons
-                    value={value}
-                    onValueChange={(v) => setValue('role', v as 'owner' | 'renter')}
-                    buttons={[
-                      { value: 'owner', label: 'Publicar autos' },
-                      { value: 'renter', label: 'Rentar autos' },
-                    ]}
-                    style={styles.segment}
-                  />
-                )}
-              />
-            </>
-          )}
-
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                label="Correo electrónico"
-                value={value}
-                onChangeText={onChange}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                mode="outlined"
-                style={styles.input}
-                disabled={isSubmitting}
-                error={!!errors.email}
-              />
-            )}
-          />
-          {errors.email ? (
-            <Text style={[styles.fieldError, { color: colors.error }]}>{errors.email.message}</Text>
-          ) : null}
-
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                label="Contraseña"
-                value={value}
-                onChangeText={onChange}
-                secureTextEntry
-                mode="outlined"
-                style={styles.input}
-                disabled={isSubmitting}
-                error={!!errors.password}
-              />
-            )}
-          />
-          {errors.password ? (
-            <Text style={[styles.fieldError, { color: colors.error }]}>{errors.password.message}</Text>
-          ) : null}
-
-          {!isAdminMode && (
-            <>
-              <Controller
-                control={control}
-                name="cedula"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    label="Cédula de identidad"
-                    value={value ?? ''}
-                    onChangeText={onChange}
-                    mode="outlined"
-                    style={styles.input}
-                    disabled={isSubmitting}
-                    error={!!errors.cedula}
-                  />
-                )}
-              />
-              {errors.cedula ? (
-                <Text style={[styles.fieldError, { color: colors.error }]}>{errors.cedula.message}</Text>
-              ) : null}
-
-              <Controller
-                control={control}
-                name="phone"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    label="Teléfono"
-                    value={value ?? ''}
-                    onChangeText={onChange}
-                    mode="outlined"
-                    style={styles.input}
-                    disabled={isSubmitting}
-                    keyboardType="phone-pad"
-                    error={!!errors.phone}
-                  />
-                )}
-              />
-              {errors.phone ? (
-                <Text style={[styles.fieldError, { color: colors.error }]}>{errors.phone.message}</Text>
-              ) : null}
-
-              {role === 'renter' && (
-                <>
-                  <Controller
-                    control={control}
-                    name="fullName"
-                    render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        label="Nombre completo"
-                        value={value ?? ''}
-                        onChangeText={onChange}
-                        mode="outlined"
-                        style={styles.input}
-                        disabled={isSubmitting}
-                        error={!!errors.fullName}
-                      />
-                    )}
-                  />
-                  {errors.fullName ? (
-                    <Text style={[styles.fieldError, { color: colors.error }]}>{errors.fullName.message}</Text>
-                  ) : null}
-                </>
-              )}
-
-              {role === 'owner' && (
-                <>
-                  <Controller
-                    control={control}
-                    name="businessName"
-                    render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        label="Nombre de la empresa"
-                        value={value ?? ''}
-                        onChangeText={onChange}
-                        mode="outlined"
-                        style={styles.input}
-                        disabled={isSubmitting}
-                        error={!!errors.businessName}
-                      />
-                    )}
-                  />
-                  {errors.businessName ? (
-                    <Text style={[styles.fieldError, { color: colors.error }]}>{errors.businessName.message}</Text>
-                  ) : null}
-
-                  <Controller
-                    control={control}
-                    name="businessAddress"
-                    render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        label="Dirección de la empresa"
-                        value={value ?? ''}
-                        onChangeText={onChange}
-                        mode="outlined"
-                        style={styles.input}
-                        disabled={isSubmitting}
-                        error={!!errors.businessAddress}
-                      />
-                    )}
-                  />
-                  {errors.businessAddress ? (
-                    <Text style={[styles.fieldError, { color: colors.error }]}>{errors.businessAddress.message}</Text>
-                  ) : null}
-                </>
-              )}
-            </>
-          )}
-
-          <Controller
-            control={control}
-            name="adminCode"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                label="Código de administrador (opcional)"
-                value={value ?? ''}
-                onChangeText={onChange}
-                mode="outlined"
-                style={styles.input}
-                disabled={isSubmitting}
-                secureTextEntry
-              />
-            )}
-          />
-
-          <Button
-            mode="contained"
-            onPress={handleSubmit(onSubmit)}
-            loading={isSubmitting}
-            disabled={isSubmitting}
-            style={styles.button}
-            contentStyle={styles.buttonContent}
-          >
-            Registrarse
-          </Button>
-
-          <Link href="/login" style={styles.link}>
-            <Text style={{ color: colors.primary, textAlign: 'center' }}>
-              ¿Ya tienes cuenta? Inicia sesión
-            </Text>
-          </Link>
-        </Surface>
-      </ScrollView>
+      {isNative ? (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          {formContent}
+        </TouchableWithoutFeedback>
+      ) : formContent}
     </KeyboardAvoidingView>
   )
 }

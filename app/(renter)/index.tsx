@@ -62,10 +62,12 @@ export default function RenterDashboard() {
     debounceRef.current = setTimeout(() => setQuery(text), 300)
   }
 
+  const cancelRef = useRef(cancel)
+  useEffect(() => { cancelRef.current = cancel }, [cancel])
   useFocusEffect(useCallback(() => {
     if (departmentId !== undefined) fetchCars()
-    return cancel
-  }, [fetchCars, cancel, departmentId]))
+    return () => cancelRef.current()
+  }, [fetchCars, departmentId]))
 
   const activeFilterCount = [
     filters.priceMin || filters.priceMax,

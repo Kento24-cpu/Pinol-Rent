@@ -10,6 +10,7 @@ interface CreateBookingParams {
   carId: number
   startDate: string
   endDate: string
+  totalPrice: number
   status?: 'pending_payment'
 }
 
@@ -19,7 +20,7 @@ export function useBookings() {
   const [loading, setLoading] = useState(true)
   const genRef = useRef(0)
 
-  const createBooking = useCallback(async ({ carId, startDate, endDate, status }: CreateBookingParams) => {
+  const createBooking = useCallback(async ({ carId, startDate, endDate, totalPrice, status }: CreateBookingParams) => {
     if (!user) throw new Error('Debes iniciar sesión')
 
     const { data, error } = await supabase
@@ -29,7 +30,7 @@ export function useBookings() {
         renter_id: user.id,
         start_date: startDate,
         end_date: endDate,
-        total_price: 0,
+        total_price: totalPrice,
         status,
       } satisfies Database['public']['Tables']['bookings']['Insert'])
       .select('id')
@@ -56,6 +57,14 @@ export function useBookings() {
   }, [])
 
   const cancelBooking = useCallback(async (bookingId: number) => {
+    const { data: booking } = await supabase
+      .from('bookings')
+      .select('status')
+      .eq('id', bookingId)
+      .single()
+    if (!booking) throw new Error('Reserva no encontrada')
+    if (booking.status === 'cancelled') throw new Error('La reserva ya está cancelada')
+    if (booking.status === 'completed') throw new Error('No se puede cancelar una reserva completada')
     await updateBookingStatus(bookingId, 'cancelled')
   }, [updateBookingStatus])
 

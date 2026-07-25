@@ -1,5 +1,6 @@
 import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
-import { Text, Surface, Switch, Divider, useTheme, Button, Icon } from 'react-native-paper'
+import { useState } from 'react'
+import { Text, Surface, Switch, Divider, useTheme, Button, Icon, Snackbar } from 'react-native-paper'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuthStore } from '../stores/authStore'
@@ -10,6 +11,7 @@ export function NotificationsScreen() {
   const insets = useSafeAreaInsets()
   const session = useAuthStore((s) => s.session)
   const { prefs, loading, updatePref } = useNotificationPrefs()
+  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
   if (!session) {
     return (
@@ -45,7 +47,10 @@ export function NotificationsScreen() {
               Notificaciones push cuando recibas un mensaje
             </Text>
           </View>
-          <Switch value={prefs.chat_push} onValueChange={(v) => updatePref('chat_push', v)} color={colors.primary} />
+          <Switch value={prefs.chat_push} onValueChange={async (v) => {
+            try { await updatePref('chat_push', v) }
+            catch { setSnackbar({ visible: true, message: 'Error al actualizar preferencia' }) }
+          }} color={colors.primary} />
         </View>
 
         <Divider style={{ backgroundColor: colors.outline }} />
@@ -57,7 +62,10 @@ export function NotificationsScreen() {
               Notificaciones sobre cambios en tus reservas
             </Text>
           </View>
-          <Switch value={prefs.booking_push} onValueChange={(v) => updatePref('booking_push', v)} color={colors.primary} />
+          <Switch value={prefs.booking_push} onValueChange={async (v) => {
+            try { await updatePref('booking_push', v) }
+            catch { setSnackbar({ visible: true, message: 'Error al actualizar preferencia' }) }
+          }} color={colors.primary} />
         </View>
 
         <Divider style={{ backgroundColor: colors.outline }} />
@@ -69,9 +77,16 @@ export function NotificationsScreen() {
               Ofertas y novedades de Pinol-Rent
             </Text>
           </View>
-          <Switch value={prefs.marketing} onValueChange={(v) => updatePref('marketing', v)} color={colors.primary} />
+          <Switch value={prefs.marketing} onValueChange={async (v) => {
+            try { await updatePref('marketing', v) }
+            catch { setSnackbar({ visible: true, message: 'Error al actualizar preferencia' }) }
+          }} color={colors.primary} />
         </View>
       </Surface>
+
+      <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
+        {snackbar.message}
+      </Snackbar>
     </ScrollView>
   )
 }

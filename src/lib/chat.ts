@@ -32,7 +32,7 @@ async function ensureProfile(userId: string, fullName?: string): Promise<void> {
     role: (role as 'owner' | 'renter' | 'admin') ?? 'renter',
   })
 
-  if (error && !error.message.includes('duplicate key')) {
+  if (error && error.code !== '23505') {
     throw error
   }
 }
@@ -66,7 +66,7 @@ export async function findOrCreateConversation(
 
   if (newConv) return newConv.id
 
-  if (error && !error.message.includes('duplicate key')) {
+  if (error && error.code !== '23505') {
     throw new Error(error.message)
   }
 

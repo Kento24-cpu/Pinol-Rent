@@ -11,6 +11,7 @@ export default function OwnerCarDetailScreen() {
   const { id } = useLocalSearchParams()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const [imageError, setImageError] = useState(false)
   const user = useAuthStore((s) => s.session?.user)
   const [car, setCar] = useState<CarWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
@@ -93,8 +94,8 @@ export default function OwnerCarDetailScreen() {
         <Icon source="arrow-left" size={24} color={colors.surface} />
       </TouchableOpacity>
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-        {car.image_url ? (
-          <Image source={{ uri: car.image_url }} style={styles.image} resizeMode="cover" />
+        {car.image_url && !imageError ? (
+          <Image source={{ uri: car.image_url }} style={styles.image} resizeMode="cover" onError={() => setImageError(true)} />
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: colors.primaryContainer }]}>
             <Icon source="car" size={80} color={colors.onSurfaceVariant} />

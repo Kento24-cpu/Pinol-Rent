@@ -5,6 +5,7 @@ export interface CarWithRelations {
   year: number
   color: string | null
   price_per_day: number
+  deposit_per_day: number | null
   location: string | null
   description: string | null
   image_url: string | null

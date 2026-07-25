@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { View, StyleSheet } from 'react-native'
+import { View, ScrollView, StyleSheet } from 'react-native'
 import { Text, Button, Surface, useTheme } from 'react-native-paper'
 
 interface DateRangePickerProps {
@@ -9,12 +9,13 @@ interface DateRangePickerProps {
   disabledDates?: string[]
 }
 
-function formatDate(d: Date): string {
-  return d.toISOString().slice(0, 10)
+function parseISODate(s: string): Date {
+  const p = s.split('-')
+  return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]))
 }
 
-function toDate(s: string): Date {
-  return new Date(s + 'T00:00:00')
+function formatDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function addDays(d: Date, n: number): Date {
@@ -34,7 +35,6 @@ const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Jul
 export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates }: DateRangePickerProps) {
   const { colors } = useTheme()
   const today = useMemo(() => new Date(), [])
-  const todayStr = formatDate(today)
   const [startDate, setStartDate] = useState<string | null>(null)
   const [endDate, setEndDate] = useState<string | null>(null)
 
@@ -73,16 +73,16 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
     }
   }
 
-  const totalDays = startDate && endDate ? daysBetween(toDate(startDate), toDate(endDate)) : 0
+  const totalDays = startDate && endDate ? daysBetween(parseISODate(startDate), parseISODate(endDate)) : 0
   const totalPrice = totalDays * pricePerDay
 
   const isDateInRange = (date: string) => {
     if (!startDate) return false
     if (date === startDate) return true
     if (!endDate) return false
-    const d = toDate(date)
-    const s = toDate(startDate)
-    const e = toDate(endDate)
+    const d = parseISODate(date)
+    const s = parseISODate(startDate)
+    const e = parseISODate(endDate)
     return d >= s && d <= e
   }
 
@@ -92,6 +92,7 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
         Seleccionar fechas
       </Text>
 
+      <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
       <View style={styles.weekHeader}>
         {DAY_NAMES.map((d) => (
           <Text key={d} variant="labelSmall" style={[styles.weekDay, { color: colors.onSurfaceVariant }]}>
@@ -115,7 +116,7 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
               return (
                 <View key={day.date} style={styles.dayCell}>
                   <Text variant="labelSmall" style={[styles.dayName, { color: colors.onSurfaceVariant }]}>
-                    {DAY_NAMES[new Date(day.date + 'T00:00:00').getDay()]}
+                    {DAY_NAMES[parseISODate(day.date).getDay()]}
                   </Text>
                   <Button
                     mode={isSelected ? 'contained' : 'text'}
@@ -152,7 +153,7 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
             {startDate && endDate ? `${totalDays} día${totalDays > 1 ? 's' : ''}` : ''}
           </Text>
           <Text variant="titleMedium" style={[styles.totalPrice, { color: colors.primary }]}>
-            {endDate ? `$${totalPrice.toLocaleString('es-NI', { minimumFractionDigits: 0 })}` : ''}
+            {endDate ? `$${totalPrice.toLocaleString(undefined, { minimumFractionDigits: 0 })}` : ''}
           </Text>
           <View style={styles.actions}>
             <Button mode="outlined" onPress={onCancel} style={styles.actionBtn}>
@@ -169,12 +170,14 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
           </View>
         </View>
       )}
+      </ScrollView>
     </Surface>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, borderRadius: 20, margin: 16 },
+  container: { padding: 16, borderRadius: 20, margin: 16, maxHeight: 420 },
+  scrollArea: { flexGrow: 1 },
   title: { fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
   monthLabel: { fontWeight: '600', marginBottom: 8, marginTop: 4 },
   weekHeader: { flexDirection: 'row', marginBottom: 4 },

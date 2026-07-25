@@ -103,7 +103,7 @@ export function usePushNotifications() {
         const { error: deleteError } = await supabase
           .from('push_tokens')
           .delete()
-          .eq('user_id', user.id)
+          .eq('token', token)
         if (deleteError) {
           console.error('Failed to clear old push token:', deleteError)
           return

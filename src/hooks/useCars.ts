@@ -8,6 +8,7 @@ interface FlatCar {
   model: string
   year: number
   price_per_day: number
+  deposit_per_day: number | null
   available: boolean
   department_name: string
   business_name: string | null
@@ -89,6 +90,7 @@ function mapCar(c: CarWithRelations): FlatCar {
     model: c.model,
     year: c.year,
     price_per_day: c.price_per_day,
+    deposit_per_day: c.deposit_per_day,
     available: c.available ?? true,
     department_name: c.department?.name ?? '',
     business_name: c.profile?.business_name ?? null,
@@ -100,7 +102,7 @@ function mapCar(c: CarWithRelations): FlatCar {
   }
 }
 
-const SELECT = 'id, brand, model, year, price_per_day, available, image_url, avg_rating, reviews_count, department:department_id(name), profile:owner_id(full_name, business_name), car_tags(tag:tag_id(name))'
+const SELECT = 'id, brand, model, year, price_per_day, deposit_per_day, available, image_url, avg_rating, reviews_count, department:department_id(name), profile:owner_id(full_name, business_name), car_tags(tag:tag_id(name))'
 
 export function useCars(options?: UseCarsOptions) {
   const [cars, setCars] = useState<FlatCar[]>([])

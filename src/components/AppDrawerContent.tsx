@@ -5,6 +5,7 @@ import { Text, Icon, useTheme, Divider, TouchableRipple, Dialog, Portal, Button 
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
+import { useThemeStore } from '../stores/themeStore'
 import { router } from 'expo-router'
 
 export function AppDrawerContent(props: DrawerContentComponentProps) {
@@ -92,9 +93,10 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
         <Divider style={{ marginVertical: 12, marginHorizontal: 16 }} />
       </DrawerContentScrollView>
 
-      {session && (
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-          <Divider style={{ marginBottom: 8 }} />
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        <Divider style={{ marginBottom: 8 }} />
+        <ThemeToggle />
+        {session && (
           <TouchableRipple onPress={() => setShowLogout(true)} rippleColor={colors.error + '20'} accessibilityLabel="Cerrar sesión">
             <View style={styles.logoutItem}>
               <Icon source="logout" size={22} color={colors.error} />
@@ -103,22 +105,53 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
               </Text>
             </View>
           </TouchableRipple>
-        </View>
-      )}
-
-      <Portal>
-        <Dialog visible={showLogout} onDismiss={() => setShowLogout(false)} style={Platform.OS === 'web' ? { maxWidth: 400, alignSelf: 'center', borderRadius: 8 } : { borderRadius: 8 }}>
-          <Dialog.Title>Cerrar sesión</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">¿Estás seguro de que quieres cerrar sesión?</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowLogout(false)}>Cancelar</Button>
-            <Button onPress={handleLogout} textColor={colors.error}>Salir</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+        )}
+        {session && (
+          <Portal>
+            <Dialog visible={showLogout} onDismiss={() => setShowLogout(false)} style={Platform.OS === 'web' ? { maxWidth: 400, alignSelf: 'center', borderRadius: 8 } : { borderRadius: 8 }}>
+              <Dialog.Title>Cerrar sesión</Dialog.Title>
+              <Dialog.Content>
+                <Text variant="bodyMedium">¿Estás seguro de que quieres cerrar sesión?</Text>
+              </Dialog.Content>
+              <Dialog.Actions>
+                <Button onPress={() => setShowLogout(false)}>Cancelar</Button>
+                <Button onPress={handleLogout} textColor={colors.error}>Salir</Button>
+              </Dialog.Actions>
+            </Dialog>
+          </Portal>
+        )}
+      </View>
     </View>
+  )
+}
+
+function ThemeToggle() {
+  const { colors } = useTheme()
+  const { themeMode, setThemeMode } = useThemeStore()
+
+  const cycleMode = () => {
+    if (themeMode === 'system') setThemeMode('light')
+    else if (themeMode === 'light') setThemeMode('dark')
+    else setThemeMode('system')
+  }
+
+  const icon = themeMode === 'dark' ? 'weather-night'
+    : themeMode === 'light' ? 'white-balance-sunny'
+    : 'theme-light-dark'
+
+  const label = themeMode === 'dark' ? 'Oscuro'
+    : themeMode === 'light' ? 'Claro'
+    : 'Sistema'
+
+  return (
+    <TouchableRipple onPress={cycleMode}>
+      <View style={styles.themeItem}>
+        <Icon source={icon} size={22} color={colors.onSurfaceVariant} />
+        <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginLeft: 32, fontWeight: '500' }}>
+          Tema: {label}
+        </Text>
+      </View>
+    </TouchableRipple>
   )
 }
 
@@ -142,6 +175,12 @@ const styles = StyleSheet.create({
   loginPrompt: { alignItems: 'center', paddingVertical: 8 },
   menu: { flex: 1 },
   footer: { paddingHorizontal: 20 },
+  themeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
   logoutItem: {
     flexDirection: 'row',
     alignItems: 'center',

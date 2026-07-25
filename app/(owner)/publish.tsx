@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Alert } from 'react-native'
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { Text, TextInput, Button, Surface, Switch, Snackbar, useTheme } from 'react-native-paper'
 import * as ImagePicker from 'expo-image-picker'
 import { router } from 'expo-router'
@@ -26,6 +26,10 @@ const schema = z.object({
   price_per_day: z.string().refine(
     (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 },
     'Precio inválido'
+  ),
+  deposit_per_day: z.string().optional().refine(
+    (v) => !v || (!isNaN(parseFloat(v)) && parseFloat(v) >= 0),
+    'Depósito inválido'
   ),
   description: z.string().optional(),
 })
@@ -117,6 +121,7 @@ export default function PublishScreen() {
 
     const year = parseInt(form.year, 10)
     const price_per_day = parseFloat(form.price_per_day)
+    const deposit_per_day = form.deposit_per_day ? parseFloat(form.deposit_per_day) : null
 
     const { data: newCar, error: carError } = await supabase.from('cars').insert({
       owner_id: user.id,
@@ -125,6 +130,7 @@ export default function PublishScreen() {
       year,
       color: form.color || null,
       price_per_day,
+      deposit_per_day,
       description: form.description || null,
       department_id: departmentId,
       available,
@@ -151,140 +157,160 @@ export default function PublishScreen() {
     }, 1500)
   }
 
+  const isNative = Platform.OS !== 'web'
+
+  const formContent = (
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
+      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
+        <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
+          Publicar auto
+        </Text>
+
+        {errors.root ? (
+          <Text style={[styles.error, { color: colors.error }]}>{errors.root.message}</Text>
+        ) : null}
+
+        <Controller
+          control={control}
+          name="brand"
+          render={({ field: { onChange, value } }) => (
+            <TextInput label="Marca" value={value} onChangeText={onChange}
+              mode="outlined" style={styles.input} disabled={isSubmitting}
+              error={!!errors.brand} />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="model"
+          render={({ field: { onChange, value } }) => (
+            <TextInput label="Modelo" value={value} onChangeText={onChange}
+              mode="outlined" style={styles.input} disabled={isSubmitting}
+              error={!!errors.model} />
+          )}
+        />
+
+        <View style={styles.row}>
+          <Controller
+            control={control}
+            name="year"
+            render={({ field: { onChange, value } }) => (
+              <TextInput label="Año" value={value} onChangeText={(v) => onChange(v.replace(/[^0-9]/g, ''))}
+                mode="outlined" style={[styles.input, styles.half]} disabled={isSubmitting}
+                keyboardType="number-pad" error={!!errors.year} />
+            )}
+          />
+          <Controller
+            control={control}
+            name="color"
+            render={({ field: { onChange, value } }) => (
+              <TextInput label="Color (opcional)" value={value} onChangeText={onChange}
+                mode="outlined" style={[styles.input, styles.half]} disabled={isSubmitting} />
+            )}
+          />
+        </View>
+
+        <Controller
+          control={control}
+          name="price_per_day"
+          render={({ field: { onChange, value } }) => (
+            <TextInput label="Precio por día ($)" value={value} onChangeText={(v) => onChange(v.replace(/[^0-9.]/g, ''))}
+              mode="outlined" style={styles.input} disabled={isSubmitting}
+              keyboardType="decimal-pad" error={!!errors.price_per_day} />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="deposit_per_day"
+          render={({ field: { onChange, value } }) => (
+            <TextInput label="Depósito por día ($) (opcional)" value={value ?? ''} onChangeText={(v) => onChange(v.replace(/[^0-9.]/g, ''))}
+              mode="outlined" style={styles.input} disabled={isSubmitting}
+              keyboardType="decimal-pad" />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="description"
+          render={({ field: { onChange, value } }) => (
+            <TextInput label="Descripción (opcional)" value={value} onChangeText={onChange}
+              mode="outlined" style={styles.input} disabled={isSubmitting}
+              multiline numberOfLines={3} />
+          )}
+        />
+
+        <Text variant="bodyMedium" style={styles.sectionLabel}>Foto</Text>
+        {imageUrl ? (
+          <View style={styles.imagePreview}>
+            <Image source={{ uri: imageUrl }} style={styles.imagePreviewImg} />
+            <Button mode="text" onPress={() => setImageUrl(null)} compact>
+              Quitar foto
+            </Button>
+          </View>
+        ) : (
+          <Button
+            mode="outlined"
+            icon="camera"
+            onPress={pickAndUploadImage}
+            loading={uploading}
+            disabled={uploading}
+            style={styles.input}
+          >
+            {uploading ? 'Subiendo...' : 'Seleccionar foto'}
+          </Button>
+        )}
+
+        <Text variant="bodyMedium" style={styles.sectionLabel}>Ubicación</Text>
+        <DepartmentPicker
+          departments={departments}
+          value={departmentId}
+          onChange={(id) => setDepartmentId(id)}
+        />
+
+        {tags.length > 0 && (
+          <>
+            <Text variant="bodyMedium" style={styles.sectionLabel}>Características</Text>
+            <TagSelector tags={tags} selected={selectedTags} onChange={setSelectedTags} />
+          </>
+        )}
+
+        <View style={styles.switchRow}>
+          <Text variant="bodyMedium">Disponible para rentar</Text>
+          <Switch value={available} onValueChange={setAvailable} color={colors.primary} />
+        </View>
+
+        <View style={styles.actions}>
+          <Button mode="outlined" onPress={() => router.back()} style={styles.actionBtn}>
+            Cancelar
+          </Button>
+          <Button mode="contained" onPress={handleSubmit(onSubmit)}
+            loading={isSubmitting} disabled={isSubmitting || uploading} style={styles.actionBtn}>
+            Publicar
+          </Button>
+        </View>
+
+        <Snackbar
+          visible={snackbar.visible}
+          onDismiss={() => setSnackbar({ visible: false, message: '' })}
+          duration={3000}
+        >
+          {snackbar.message}
+        </Snackbar>
+      </Surface>
+    </ScrollView>
+  )
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
-          <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
-            Publicar auto
-          </Text>
-
-          {errors.root ? (
-            <Text style={[styles.error, { color: colors.error }]}>{errors.root.message}</Text>
-          ) : null}
-
-          <Controller
-            control={control}
-            name="brand"
-            render={({ field: { onChange, value } }) => (
-              <TextInput label="Marca" value={value} onChangeText={onChange}
-                mode="outlined" style={styles.input} disabled={isSubmitting}
-                error={!!errors.brand} />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="model"
-            render={({ field: { onChange, value } }) => (
-              <TextInput label="Modelo" value={value} onChangeText={onChange}
-                mode="outlined" style={styles.input} disabled={isSubmitting}
-                error={!!errors.model} />
-            )}
-          />
-
-          <View style={styles.row}>
-            <Controller
-              control={control}
-              name="year"
-              render={({ field: { onChange, value } }) => (
-                <TextInput label="Año" value={value} onChangeText={(v) => onChange(v.replace(/[^0-9]/g, ''))}
-                  mode="outlined" style={[styles.input, styles.half]} disabled={isSubmitting}
-                  keyboardType="number-pad" error={!!errors.year} />
-              )}
-            />
-            <Controller
-              control={control}
-              name="color"
-              render={({ field: { onChange, value } }) => (
-                <TextInput label="Color (opcional)" value={value} onChangeText={onChange}
-                  mode="outlined" style={[styles.input, styles.half]} disabled={isSubmitting} />
-              )}
-            />
-          </View>
-
-          <Controller
-            control={control}
-            name="price_per_day"
-            render={({ field: { onChange, value } }) => (
-              <TextInput label="Precio por día ($)" value={value} onChangeText={(v) => onChange(v.replace(/[^0-9.]/g, ''))}
-                mode="outlined" style={styles.input} disabled={isSubmitting}
-                keyboardType="decimal-pad" error={!!errors.price_per_day} />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="description"
-            render={({ field: { onChange, value } }) => (
-              <TextInput label="Descripción (opcional)" value={value} onChangeText={onChange}
-                mode="outlined" style={styles.input} disabled={isSubmitting}
-                multiline numberOfLines={3} />
-            )}
-          />
-
-          <Text variant="bodyMedium" style={styles.sectionLabel}>Foto</Text>
-          {imageUrl ? (
-            <View style={styles.imagePreview}>
-              <Image source={{ uri: imageUrl }} style={styles.imagePreviewImg} />
-              <Button mode="text" onPress={() => setImageUrl(null)} compact>
-                Quitar foto
-              </Button>
-            </View>
-          ) : (
-            <Button
-              mode="outlined"
-              icon="camera"
-              onPress={pickAndUploadImage}
-              loading={uploading}
-              disabled={uploading}
-              style={styles.input}
-            >
-              {uploading ? 'Subiendo...' : 'Seleccionar foto'}
-            </Button>
-          )}
-
-          <Text variant="bodyMedium" style={styles.sectionLabel}>Ubicación</Text>
-          <DepartmentPicker
-            departments={departments}
-            value={departmentId}
-            onChange={(id) => setDepartmentId(id)}
-          />
-
-          {tags.length > 0 && (
-            <>
-              <Text variant="bodyMedium" style={styles.sectionLabel}>Características</Text>
-              <TagSelector tags={tags} selected={selectedTags} onChange={setSelectedTags} />
-            </>
-          )}
-
-          <View style={styles.switchRow}>
-            <Text variant="bodyMedium">Disponible para rentar</Text>
-            <Switch value={available} onValueChange={setAvailable} color={colors.primary} />
-          </View>
-
-          <View style={styles.actions}>
-            <Button mode="outlined" onPress={() => router.back()} style={styles.actionBtn}>
-              Cancelar
-            </Button>
-            <Button mode="contained" onPress={handleSubmit(onSubmit)}
-              loading={isSubmitting} disabled={isSubmitting || uploading} style={styles.actionBtn}>
-              Publicar
-            </Button>
-          </View>
-
-          <Snackbar
-            visible={snackbar.visible}
-            onDismiss={() => setSnackbar({ visible: false, message: '' })}
-            duration={3000}
-          >
-            {snackbar.message}
-          </Snackbar>
-        </Surface>
-      </ScrollView>
+      {isNative ? (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          {formContent}
+        </TouchableWithoutFeedback>
+      ) : formContent}
     </KeyboardAvoidingView>
   )
 }

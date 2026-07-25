@@ -33,6 +33,8 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
   const [uploading, setUploading] = useState(false)
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string>('')
+  const [avatarError, setAvatarError] = useState(false)
+  const [editingAvatarError, setEditingAvatarError] = useState(false)
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
   const schema = z.object({
@@ -105,7 +107,7 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
       return
     }
 
-    await supabase.storage.from('avatars').remove([`${user.id}/avatar`])
+    await supabase.storage.from('avatars').remove([`${user.id}/avatar`]).catch(() => {})
 
     const { data, error } = await supabase.storage
       .from('avatars')
@@ -213,8 +215,8 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.scroll}>
         <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
           <View style={styles.avatarSection}>
-            {profile?.avatarUrl ? (
-              <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} />
+            {profile?.avatarUrl && !avatarError ? (
+              <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} onError={() => setAvatarError(true)} />
             ) : (
               <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
                 <Text style={[styles.avatarText, { color: colors.onPrimary }]}>
@@ -279,8 +281,8 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
         </Text>
 
         <View style={styles.avatarEditSection}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          {avatarUrl && !editingAvatarError ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} onError={() => setEditingAvatarError(true)} />
           ) : (
             <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
               <Text style={[styles.avatarText, { color: colors.onPrimary }]}>
@@ -289,12 +291,12 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
             </View>
           )}
           <View style={styles.avatarActions}>
-            <Button mode="outlined" icon="camera" onPress={pickAndUploadAvatar} loading={uploading} disabled={uploading} compact>
-              <Text>{avatarUrl ? 'Cambiar' : 'Subir foto'}</Text>
+            <Button mode="outlined" icon="camera" onPress={pickAndUploadAvatar} loading={uploading} disabled={uploading} compact labelStyle={{ fontSize: 13 }}>
+              {avatarUrl ? 'Cambiar' : 'Subir foto'}
             </Button>
             {avatarUrl && (
-              <Button mode="text" icon="close" onPress={removeAvatar} disabled={uploading} compact>
-                <Text>Quitar</Text>
+              <Button mode="text" icon="close" onPress={removeAvatar} disabled={uploading} compact labelStyle={{ fontSize: 13 }}>
+                Quitar
               </Button>
             )}
           </View>

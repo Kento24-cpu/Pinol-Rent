@@ -40,7 +40,7 @@ export function ReviewCard({ rating, comment, createdAt, renterName, renterAvata
         </View>
         {createdAt && (
           <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
-            {new Date(createdAt).toLocaleDateString('es-NI')}
+            {new Date(createdAt).toLocaleDateString()}
           </Text>
         )}
       </View>
