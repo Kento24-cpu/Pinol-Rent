@@ -1,6 +1,7 @@
 import { View, Image, StyleSheet } from 'react-native'
 import { Text, Icon, useTheme } from 'react-native-paper'
 import { RATING_COLOR } from '../lib/theme'
+import { memo } from 'react'
 
 interface ReviewCardProps {
   rating: number
@@ -10,7 +11,7 @@ interface ReviewCardProps {
   renterAvatar: string | null
 }
 
-export function ReviewCard({ rating, comment, createdAt, renterName, renterAvatar }: ReviewCardProps) {
+export const ReviewCard = memo(function ReviewCard({ rating, comment, createdAt, renterName, renterAvatar }: ReviewCardProps) {
   const { colors } = useTheme()
 
   return (
@@ -51,7 +52,7 @@ export function ReviewCard({ rating, comment, createdAt, renterName, renterAvata
       )}
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   container: { padding: 16, borderRadius: 12, marginBottom: 8 },

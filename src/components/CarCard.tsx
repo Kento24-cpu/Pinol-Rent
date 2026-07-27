@@ -1,7 +1,7 @@
 import { View, Image, StyleSheet } from 'react-native'
 import { Text, Card, Chip, Icon, useTheme } from 'react-native-paper'
 import { RATING_COLOR } from '../lib/theme'
-import { useState } from 'react'
+import { useState, memo } from 'react'
 
 interface CarCardCar {
   id: number
@@ -25,7 +25,7 @@ interface CarCardProps {
   onPress: (id: number) => void
 }
 
-export function CarCard({ car, onPress }: CarCardProps) {
+export const CarCard = memo(function CarCard({ car, onPress }: CarCardProps) {
   const { colors } = useTheme()
   const [imageError, setImageError] = useState(false)
 
@@ -113,7 +113,7 @@ export function CarCard({ car, onPress }: CarCardProps) {
       </Card.Content>
     </Card>
   )
-}
+})
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: 16, marginVertical: 10, borderRadius: 16 },

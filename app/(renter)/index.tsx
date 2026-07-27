@@ -139,22 +139,22 @@ export default function RenterDashboard() {
           <View style={styles.chipRow}>
             {filters.priceMin && (
               <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, priceMin: '' }))} compact>
-                Min ${filters.priceMin}
+                <Text variant="labelSmall">Min ${filters.priceMin}</Text>
               </Chip>
             )}
             {filters.priceMax && (
               <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, priceMax: '' }))} compact>
-                Max ${filters.priceMax}
+                <Text variant="labelSmall">Max ${filters.priceMax}</Text>
               </Chip>
             )}
             {filters.sortBy !== 'newest' && (
               <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, sortBy: 'newest' }))} compact>
-                {filters.sortBy === 'price_asc' ? 'Precio ↑' : 'Precio ↓'}
+                <Text variant="labelSmall">{filters.sortBy === 'price_asc' ? 'Precio ↑' : 'Precio ↓'}</Text>
               </Chip>
             )}
             {filters.location && (
               <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, location: '' }))} compact>
-                {filters.location}
+                <Text variant="labelSmall">{filters.location}</Text>
               </Chip>
             )}
           </View>

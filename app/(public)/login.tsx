@@ -183,7 +183,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       {isNative ? (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

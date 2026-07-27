@@ -1,6 +1,7 @@
 import { View, Image, StyleSheet } from 'react-native'
 import { Text, Card, Chip, Icon, useTheme } from 'react-native-paper'
-import { useState } from 'react'
+import { useState, memo } from 'react'
+import { STATUS_COLORS, STATUS_LABELS } from '../lib/bookingStatus'
 
 interface BookingCardBooking {
   id: number
@@ -19,23 +20,7 @@ interface BookingCardProps {
   showUser?: 'renter' | 'owner'
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: '#F9A825',
-  pending_payment: '#E65100',
-  confirmed: '#2E7D32',
-  cancelled: '#C62828',
-  completed: '#1565C0',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  pending_payment: 'Pendiente de pago',
-  confirmed: 'Confirmada',
-  cancelled: 'Cancelada',
-  completed: 'Completada',
-}
-
-export function BookingCard({ booking, onPress, showUser }: BookingCardProps) {
+export const BookingCard = memo(function BookingCard({ booking, onPress, showUser }: BookingCardProps) {
   const { colors } = useTheme()
   const [imageError, setImageError] = useState(false)
   const statusColor = STATUS_COLORS[booking.status] ?? colors.onSurfaceVariant
@@ -80,7 +65,7 @@ export function BookingCard({ booking, onPress, showUser }: BookingCardProps) {
       </View>
     </Card>
   )
-}
+})
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: 16, marginVertical: 6, borderRadius: 16, padding: 12 },

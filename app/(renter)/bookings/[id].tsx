@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Chip, Snackbar, useTheme, Icon, TextInput, Portal, Dialog } from 'react-native-paper'
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { useReviews } from '../../../src/hooks/useReviews'
 import { RatingInput } from '../../../src/components/RatingInput'
+import { STATUS_COLORS, STATUS_LABELS } from '../../../src/lib/bookingStatus'
 import { findOrCreateConversation } from '../../../src/lib/chat'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { supabase } from '../../../src/lib/supabase'
@@ -97,11 +98,7 @@ export default function RenterBookingDetailScreen() {
     )
   }
 
-  const statusColor = booking.status === 'pending_payment' ? '#E65100'
-    : booking.status === 'pending' ? '#F9A825'
-    : booking.status === 'confirmed' ? '#2E7D32'
-    : booking.status === 'cancelled' ? '#C62828'
-    : '#1565C0'
+  const statusColor = STATUS_COLORS[booking.status] ?? colors.onSurfaceVariant
 
   const parseDate = (s: string) => { const [y, m, d] = s.split('-'); return new Date(Number(y), Number(m) - 1, Number(d)) }
   const days = Math.round((parseDate(booking.end_date).getTime() - parseDate(booking.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1
@@ -113,11 +110,7 @@ export default function RenterBookingDetailScreen() {
           style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}
           textStyle={[styles.statusText, { color: statusColor }]}
         >
-          {booking.status === 'pending_payment' ? 'Pago pendiente'
-            : booking.status === 'pending' ? 'Pendiente'
-            : booking.status === 'confirmed' ? 'Confirmada'
-            : booking.status === 'cancelled' ? 'Cancelada'
-            : 'Completada'}
+          {STATUS_LABELS[booking.status] ?? booking.status}
         </Chip>
 
         <Text variant="headlineSmall" style={{ fontWeight: 'bold', marginTop: 12 }}>

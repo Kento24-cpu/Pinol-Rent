@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { Text, TextInput, Button, Surface, Switch, Snackbar, useTheme } from 'react-native-paper'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import { router } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
@@ -38,6 +39,7 @@ type CarForm = z.infer<typeof schema>
 
 export default function PublishScreen() {
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
   const user = useAuthStore((s) => s.session?.user)
   const [departments, setDepartments] = useState<Department[]>([])
   const [tags, setTags] = useState<Tag[]>([])
@@ -160,7 +162,7 @@ export default function PublishScreen() {
   const isNative = Platform.OS !== 'web'
 
   const formContent = (
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(40, insets.bottom + 16) }]}>
       <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
           Publicar auto
@@ -304,7 +306,7 @@ export default function PublishScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       {isNative ? (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

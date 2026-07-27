@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Snackbar, useTheme, TextInput } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../../src/lib/supabase'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { useBookings } from '../../../src/hooks/useBookings'
@@ -11,6 +12,7 @@ import { DateRangePicker } from '../../../src/components/DateRangePicker'
 export default function BookCarScreen() {
   const { carId: carIdParam } = useLocalSearchParams<{ carId: string }>()
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
   const user = useAuthStore((s) => s.session?.user)
   const { createBooking, checkAvailability } = useBookings()
   const { submitCardPayment } = usePaymentIntents()
@@ -110,7 +112,7 @@ export default function BookCarScreen() {
   if (showPayment && bookingId) {
     return (
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={{ padding: 16 }}>
+        <View style={{ padding: 16, paddingBottom: insets.bottom + 16 }}>
           <Surface style={[styles.carInfo, { backgroundColor: colors.surface }]} elevation={1}>
             <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>
               {car?.brand} {car?.model}
@@ -179,7 +181,7 @@ export default function BookCarScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={{ padding: 16 }}>
+      <View style={{ padding: 16, paddingBottom: insets.bottom + 16 }}>
         <Surface style={[styles.carInfo, { backgroundColor: colors.surface }]} elevation={1}>
           <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>
             {car?.brand} {car?.model}

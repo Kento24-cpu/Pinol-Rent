@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Chip, Snackbar, useTheme, Icon } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useBookings } from '../../../src/hooks/useBookings'
+import { STATUS_COLORS, STATUS_LABELS } from '../../../src/lib/bookingStatus'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { supabase } from '../../../src/lib/supabase'
 import type { BookingWithRelations } from '../../../src/types/database.types'
@@ -58,11 +59,7 @@ export default function OwnerBookingDetailScreen() {
     )
   }
 
-  const statusColor = booking.status === 'pending_payment' ? '#E65100'
-    : booking.status === 'pending' ? '#F9A825'
-    : booking.status === 'confirmed' ? '#2E7D32'
-    : booking.status === 'cancelled' ? '#C62828'
-    : '#1565C0'
+  const statusColor = STATUS_COLORS[booking.status] ?? colors.onSurfaceVariant
 
   const parseDate = (s: string) => { const [y, m, d] = s.split('-'); return new Date(Number(y), Number(m) - 1, Number(d)) }
   const days = (() => {
@@ -78,11 +75,7 @@ export default function OwnerBookingDetailScreen() {
           style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}
           textStyle={[styles.statusText, { color: statusColor }]}
         >
-          {booking.status === 'pending_payment' ? 'Esperando pago'
-            : booking.status === 'pending' ? 'Pendiente'
-            : booking.status === 'confirmed' ? 'Confirmada'
-            : booking.status === 'cancelled' ? 'Cancelada'
-            : 'Completada'}
+          {STATUS_LABELS[booking.status] ?? booking.status}
         </Chip>
 
         <Text variant="headlineSmall" style={{ fontWeight: 'bold', marginTop: 12 }}>

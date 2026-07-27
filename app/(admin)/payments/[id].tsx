@@ -65,7 +65,6 @@ export default function PaymentDetailScreen() {
     setDecrypting(true)
     try {
       const data = await decryptCard(paymentId)
-      console.log('[PayDetail] decryptCard returned:', JSON.stringify(data))
       if (data && typeof data.card_number === 'string' && data.card_number.length > 0) {
         setDecrypted(data)
       } else {

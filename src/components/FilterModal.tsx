@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, ScrollView, StyleSheet, Modal, Platform } from 'react-native'
+import { View, ScrollView, StyleSheet, Modal } from 'react-native'
 import { Text, Button, TextInput, Surface, Chip, SegmentedButtons, useTheme } from 'react-native-paper'
 import { TagSelector } from './TagSelector'
 
@@ -21,7 +21,6 @@ interface FilterModalProps {
 
 export function FilterModal({ visible, onDismiss, current, onApply, tags }: FilterModalProps) {
   const { colors } = useTheme()
-  const sepColor = colors.outline
   const [priceMin, setPriceMin] = useState('')
   const [priceMax, setPriceMax] = useState('')
   const [tagIds, setTagIds] = useState<number[]>([])

@@ -1,4 +1,4 @@
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native'
+import { ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { useEffect } from 'react'
 import { Text, TextInput, Button, Surface, SegmentedButtons, useTheme } from 'react-native-paper'
 import { Link } from 'expo-router'
@@ -324,7 +324,7 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       {isNative ? (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
