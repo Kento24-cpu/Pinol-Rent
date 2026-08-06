@@ -8,6 +8,7 @@ import { useAuthStore } from '../../src/stores/authStore'
 import { findOrCreateConversation } from '../../src/lib/chat'
 import { useReviews } from '../../src/hooks/useReviews'
 import { ReviewCard } from '../../src/components/ReviewCard'
+import { RENTER_FEE, renterFeeAmount, renterUnitPrice } from '../../src/lib/commission'
 import type { CarWithRelations } from '../../src/types/database.types'
 
 export default function CarDetailScreen() {
@@ -96,6 +97,16 @@ export default function CarDetailScreen() {
 
           <Text variant="headlineMedium" style={[styles.price, { color: colors.primary }]}>
             ${car.price_per_day} <Text variant="bodyMedium">/ día</Text>
+          </Text>
+
+          <View style={styles.feeRow}>
+            <Icon source="plus-circle" size={16} color={colors.onSurfaceVariant} />
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginLeft: 6 }}>
+              ${renterFeeAmount(car.price_per_day)}/día ({Math.round(RENTER_FEE * 100)}% servicio)
+            </Text>
+          </View>
+          <Text variant="titleMedium" style={[styles.totalPrice, { color: colors.onSurface }]}>
+            ${renterUnitPrice(car.price_per_day)}/día — costo total
           </Text>
 
           {car.deposit_per_day && (
@@ -240,6 +251,8 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginLeft: 8 },
   price: { fontWeight: 'bold' },
+  feeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  totalPrice: { fontWeight: 'bold', marginTop: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   infoSection: { marginTop: 20, gap: 8 },
   infoRow: { flexDirection: 'row', alignItems: 'center' },

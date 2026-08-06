@@ -1,11 +1,39 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+export const ANDROID_CHANNEL_ID = 'messages'
+
 interface PushMessage {
   to: string
   sound: 'default'
   title: string
   body: string
   data: Record<string, unknown>
+  channelId?: string
+}
+
+/**
+ * Returns the push tokens of a user only if the given preference is enabled
+ * (missing pref row defaults to enabled).
+ */
+export async function pushTokensForUser(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  pref: 'chat_push' | 'booking_push',
+): Promise<{ token: string }[]> {
+  const { data: prefs } = await supabase
+    .from('notification_prefs')
+    .select(pref)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (prefs && prefs[pref] === false) return []
+
+  const { data: tokens } = await supabase
+    .from('push_tokens')
+    .select('token')
+    .eq('user_id', userId)
+
+  return tokens ?? []
 }
 
 export async function sendPush(

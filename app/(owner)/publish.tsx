@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native'
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { Text, TextInput, Button, Surface, Switch, Snackbar, useTheme } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { mimeToExt, uriToBlob } from '../../src/lib/upload'
+import { showAlert } from '../../src/lib/alert'
 import { DepartmentPicker } from '../../src/components/DepartmentPicker'
 import { TagSelector } from '../../src/components/TagSelector'
 import type { Tables } from '../../src/types/database'
@@ -32,6 +33,7 @@ const schema = z.object({
     (v) => !v || (!isNaN(parseFloat(v)) && parseFloat(v) >= 0),
     'Depósito inválido'
   ),
+  location: z.string().optional(),
   description: z.string().optional(),
 })
 
@@ -54,7 +56,7 @@ export default function PublishScreen() {
     resolver: zodResolver(schema),
     defaultValues: {
       brand: '', model: '', year: String(new Date().getFullYear()),
-      color: '', price_per_day: '', description: '',
+      color: '', price_per_day: '', description: '', location: '',
     },
   })
 
@@ -70,7 +72,7 @@ export default function PublishScreen() {
   const pickAndUploadImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
-      Alert.alert('Permiso requerido', 'Habilita el acceso a tus fotos en Configuración para subir una imagen.')
+      showAlert('Permiso requerido', 'Habilita el acceso a tus fotos en Configuración para subir una imagen.')
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -125,28 +127,22 @@ export default function PublishScreen() {
     const price_per_day = parseFloat(form.price_per_day)
     const deposit_per_day = form.deposit_per_day ? parseFloat(form.deposit_per_day) : null
 
-    const { data: newCar, error: carError } = await supabase.from('cars').insert({
-      owner_id: user.id,
-      brand: form.brand,
-      model: form.model,
-      year,
-      color: form.color || null,
-      price_per_day,
-      deposit_per_day,
-      description: form.description || null,
-      department_id: departmentId,
-      available,
-      image_url: imageUrl,
-    }).select('id').single()
+    const { data: newCarId, error: rpcError } = await supabase.rpc('publish_car', {
+      p_brand: form.brand,
+      p_model: form.model,
+      p_year: year,
+      p_color: form.color || null,
+      p_price_per_day: price_per_day,
+      p_deposit_per_day: deposit_per_day,
+      p_description: form.description || null,
+      p_location: form.location || null,
+      p_department_id: departmentId,
+      p_available: available,
+      p_image_url: imageUrl,
+      p_tag_ids: selectedTags,
+    })
 
-    if (carError) { setError('root', { message: carError.message }); return }
-
-    if (selectedTags.length > 0 && newCar) {
-      const { error: tagsError } = await supabase.from('car_tags').insert(
-        selectedTags.map((tagId) => ({ car_id: newCar.id, tag_id: tagId }))
-      )
-      if (tagsError) { setError('root', { message: tagsError.message }); return }
-    }
+    if (rpcError) { setError('root', { message: rpcError.message }); return }
 
     setSnackbar({ visible: true, message: 'Auto publicado exitosamente' })
     setTimeout(() => {
@@ -229,6 +225,15 @@ export default function PublishScreen() {
             <TextInput label="Depósito por día ($) (opcional)" value={value ?? ''} onChangeText={(v) => onChange(v.replace(/[^0-9.]/g, ''))}
               mode="outlined" style={styles.input} disabled={isSubmitting}
               keyboardType="decimal-pad" />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="location"
+          render={({ field: { onChange, value } }) => (
+            <TextInput label="Ubicación (ej. Managua, Masaya)" value={value} onChangeText={onChange}
+              mode="outlined" style={styles.input} disabled={isSubmitting} />
           )}
         />
 

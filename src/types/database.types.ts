@@ -31,7 +31,7 @@ export interface ConversationWithLatest {
   car: { brand: string; model: string; image_url: string | null } | null
   renter: { full_name: string; avatar_url: string | null } | null
   owner: { full_name: string | null; avatar_url: string | null } | null
-  latest_message: { content: string; created_at: string | null; sender_id: string } | null
+  latest_message: { content: string | null; created_at: string | null; sender_id: string }[] | { content: string | null; created_at: string | null; sender_id: string } | null
   unread_count?: number
 }
 
@@ -43,6 +43,9 @@ export interface BookingWithRelations {
   end_date: string
   total_price: number
   unit_price: number | null
+  renter_service_fee: number | null
+  owner_commission: number | null
+  owner_net_total: number | null
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'pending_payment'
   created_at: string | null
   car: { brand: string; model: string; image_url: string | null; price_per_day: number } | null
@@ -70,4 +73,5 @@ export interface MessageWithSender {
   read_at: string | null
   created_at: string | null
   sender: { full_name: string | null; avatar_url: string | null } | null
+  attachment_signed_url?: string | null
 }

@@ -11,6 +11,7 @@ interface CreateBookingParams {
   startDate: string
   endDate: string
   totalPrice: number
+  unitPrice: number
   status?: 'pending_payment'
 }
 
@@ -20,7 +21,7 @@ export function useBookings() {
   const [loading, setLoading] = useState(true)
   const genRef = useRef(0)
 
-  const createBooking = useCallback(async ({ carId, startDate, endDate, totalPrice, status }: CreateBookingParams) => {
+  const createBooking = useCallback(async ({ carId, startDate, endDate, totalPrice, unitPrice, status }: CreateBookingParams) => {
     if (!user) throw new Error('Debes iniciar sesión')
 
     const { data, error } = await supabase
@@ -31,6 +32,7 @@ export function useBookings() {
         start_date: startDate,
         end_date: endDate,
         total_price: totalPrice,
+        unit_price: unitPrice,
         status,
       } satisfies Database['public']['Tables']['bookings']['Insert'])
       .select('id')

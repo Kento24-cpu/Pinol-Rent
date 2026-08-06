@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { View, ScrollView, StyleSheet } from 'react-native'
 import { Text, Button, Surface, useTheme } from 'react-native-paper'
+import { RENTER_FEE, renterUnitPrice } from '../lib/commission'
 
 interface DateRangePickerProps {
   pricePerDay: number
@@ -68,6 +69,12 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
         setStartDate(date)
         setEndDate(null)
       } else {
+        // Reject ranges that include an occupied date
+        const s = parseISODate(startDate)
+        const e = parseISODate(date)
+        for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+          if (disabledSet.has(formatDate(d))) return
+        }
         setEndDate(date)
       }
     }
@@ -75,6 +82,7 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
 
   const totalDays = startDate && endDate ? daysBetween(parseISODate(startDate), parseISODate(endDate)) : 0
   const totalPrice = totalDays * pricePerDay
+  const feeIncludedTotal = totalDays > 0 ? renterUnitPrice(pricePerDay) * totalDays : 0
 
   const isDateInRange = (date: string) => {
     if (!startDate) return false
@@ -150,10 +158,10 @@ export function DateRangePicker({ pricePerDay, onSelect, onCancel, disabledDates
         <View style={[styles.summary, { borderTopColor: colors.outline }]}>
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
             {startDate && !endDate ? 'Selecciona la fecha de fin' : ''}
-            {startDate && endDate ? `${totalDays} día${totalDays > 1 ? 's' : ''}` : ''}
+            {startDate && endDate ? `${totalDays} día${totalDays > 1 ? 's' : ''} (${pricePerDay}/día + ${Math.round(RENTER_FEE * 100)}% servicio)` : ''}
           </Text>
           <Text variant="titleMedium" style={[styles.totalPrice, { color: colors.primary }]}>
-            {endDate ? `$${totalPrice.toLocaleString(undefined, { minimumFractionDigits: 0 })}` : ''}
+            {endDate ? `$${feeIncludedTotal.toLocaleString(undefined, { minimumFractionDigits: 0 })}` : ''}
           </Text>
           <View style={styles.actions}>
             <Button mode="outlined" onPress={onCancel} style={styles.actionBtn}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, ScrollView, StyleSheet, ActivityIndicator, Image, Alert } from 'react-native'
+import { View, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native'
 import { Text, TextInput, Button, Surface, Snackbar, useTheme, Icon } from 'react-native-paper'
 import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../lib/supabase'
 import { uriToBlob } from '../lib/upload'
+import { showAlert } from '../lib/alert'
 import { useAuthStore } from '../stores/authStore'
 import type { Database } from '../types/database'
 
@@ -84,7 +85,7 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
   const pickAndUploadAvatar = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
-      Alert.alert('Permiso requerido', 'Habilita el acceso a tus fotos para cambiar tu foto de perfil.')
+      showAlert('Permiso requerido', 'Habilita el acceso a tus fotos para cambiar tu foto de perfil.')
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({

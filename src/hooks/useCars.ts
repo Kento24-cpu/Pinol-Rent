@@ -113,6 +113,9 @@ export function useCars(options?: UseCarsOptions) {
   const pageRef = useRef(0)
   const hasMoreRef = useRef(true)
   const optsRef = useRef(options)
+  const hasHydratedRef = useRef(false)
+  const lastOptsKeyRef = useRef('')
+
   useEffect(() => { optsRef.current = options }, [options])
 
   const runQuery = useCallback(async (start: number, isRefresh: boolean): Promise<FlatCar[] | null> => {
@@ -153,11 +156,30 @@ export function useCars(options?: UseCarsOptions) {
     setRefreshing(false)
   }, [runQuery])
 
+  // Re-fetch when filters change (search, price, tags, sort, location).
+  // Skipped on the first run: the screens already fetch on focus.
+  useEffect(() => {
+    const key = JSON.stringify(options ?? {})
+    if (!hasHydratedRef.current) {
+      hasHydratedRef.current = true
+      lastOptsKeyRef.current = key
+      return
+    }
+    if (lastOptsKeyRef.current !== key) {
+      lastOptsKeyRef.current = key
+      fetchCars()
+    }
+  }, [options, fetchCars])
+
   const loadMore = useCallback(async () => {
     if (!hasMoreRef.current || loading || refreshing) return
     const nextPage = pageRef.current + 1
     const result = await runQuery(nextPage * PAGE_SIZE, false)
-    if (result === null || result.length === 0) return
+    if (result === null) return
+    if (result.length === 0) {
+      hasMoreRef.current = false
+      return
+    }
     hasMoreRef.current = result.length >= PAGE_SIZE
     pageRef.current = nextPage
     setCars((prev) => [...prev, ...result])

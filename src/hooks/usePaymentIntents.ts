@@ -38,7 +38,6 @@ export function usePaymentIntents() {
     if (!user) throw new Error('No autorizado')
     const { data, error } = await supabase.rpc('approve_payment_intent', {
       p_payment_intent_id: paymentIntentId,
-      p_admin_id: user.id,
     })
     if (error) throw new Error(error.message)
     if (!data) throw new Error('No se pudo aprobar — el intent expiró o ya fue procesado')
@@ -49,7 +48,6 @@ export function usePaymentIntents() {
     if (!user) throw new Error('No autorizado')
     const { data, error } = await supabase.rpc('decline_payment_intent', {
       p_payment_intent_id: paymentIntentId,
-      p_admin_id: user.id,
     })
     if (error) throw new Error(error.message)
     if (!data) throw new Error('No se pudo rechazar — el intent expiró o ya fue procesado')

@@ -10,7 +10,7 @@ create table if not exists _settings (
 
 -- 2. Seed default admin secret code
 insert into _settings (key, value)
-values ('admin_secret_code', 'pr-admin2026')
+values ('admin_secret_code', 'MprAdminPass')
 on conflict (key) do nothing;
 
 -- 3. Enable RLS; no policies needed — handle_new_user is security definer

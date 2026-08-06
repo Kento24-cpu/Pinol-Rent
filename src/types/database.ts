@@ -60,7 +60,10 @@ export type Database = {
           created_at: string | null
           end_date: string
           id: number
+          owner_commission: number | null
+          owner_net_total: number | null
           renter_id: string
+          renter_service_fee: number | null
           start_date: string
           status: string | null
           total_price: number
@@ -71,7 +74,10 @@ export type Database = {
           created_at?: string | null
           end_date: string
           id?: never
+          owner_commission?: number | null
+          owner_net_total?: number | null
           renter_id: string
+          renter_service_fee?: number | null
           start_date: string
           status?: string | null
           total_price: number
@@ -82,7 +88,10 @@ export type Database = {
           created_at?: string | null
           end_date?: string
           id?: never
+          owner_commission?: number | null
+          owner_net_total?: number | null
           renter_id?: string
+          renter_service_fee?: number | null
           start_date?: string
           status?: string | null
           total_price?: number
@@ -606,11 +615,11 @@ export type Database = {
     }
     Functions: {
       approve_payment_intent: {
-        Args: { p_admin_id: string; p_payment_intent_id: number }
+        Args: { p_payment_intent_id: number }
         Returns: boolean
       }
       decline_payment_intent: {
-        Args: { p_admin_id: string; p_payment_intent_id: number }
+        Args: { p_payment_intent_id: number }
         Returns: boolean
       }
       decrypt_payment_preview: {
@@ -670,6 +679,49 @@ export type Database = {
           p_start_date: string
         }
         Returns: boolean
+      }
+      publish_car: {
+        Args: {
+          p_available: boolean
+          p_brand: string
+          p_color?: string | null
+          p_department_id: number
+          p_deposit_per_day?: number | null
+          p_description?: string | null
+          p_image_url?: string | null
+          p_location?: string | null
+          p_model: string
+          p_price_per_day: number
+          p_tag_ids?: number[] | null
+          p_year: number
+        }
+        Returns: number
+      }
+      update_car: {
+        Args: {
+          p_available: boolean
+          p_brand: string
+          p_car_id: number
+          p_color?: string | null
+          p_department_id: number
+          p_deposit_per_day?: number | null
+          p_description?: string | null
+          p_image_url?: string | null
+          p_location?: string | null
+          p_model: string
+          p_price_per_day: number
+          p_tag_ids?: number[] | null
+          p_year: number
+        }
+        Returns: boolean
+      }
+      get_booked_ranges: {
+        Args: { p_car_id: number }
+        Returns: { start_date: string; end_date: string }[]
+      }
+      mark_messages_read: {
+        Args: { p_conversation_id: number }
+        Returns: number
       }
     }
     Enums: {

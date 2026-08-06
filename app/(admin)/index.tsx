@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native'
-import { Text, Button, Surface, Chip, Snackbar, useTheme, Icon } from 'react-native-paper'
+import { Text, Button, Surface, Chip, useTheme, Icon } from 'react-native-paper'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { usePaymentIntents } from '../../src/hooks/usePaymentIntents'
@@ -10,7 +10,6 @@ export default function AdminDashboard() {
   const insets = useSafeAreaInsets()
   const { intents, loading, fetchPending } = usePaymentIntents()
   const [refreshing, setRefreshing] = useState(false)
-  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
   useEffect(() => {
     fetchPending()
@@ -94,10 +93,6 @@ export default function AdminDashboard() {
           onRefresh={handleRefresh}
         />
       )}
-
-      <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
-        {snackbar.message}
-      </Snackbar>
     </View>
   )
 }

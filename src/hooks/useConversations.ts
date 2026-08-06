@@ -17,7 +17,7 @@ export function useConversations() {
     try {
       const { data } = await supabase
         .from('conversations')
-        .select('*, car:car_id(brand, model, image_url), renter:renter_id(full_name, avatar_url), owner:owner_id(full_name, avatar_url), latest_message:messages(content, created_at, sender_id)')
+        .select('*, car:car_id(brand, model, image_url), renter:renter_id(full_name, avatar_url), owner:owner_id(full_name, avatar_url), latest_message:messages(order:created_at.desc,limit:1,content,created_at,sender_id)')
         .or(`renter_id.eq.${user.id},owner_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false })
       if (gen !== genRef.current) return

@@ -179,7 +179,7 @@ export default function RenterDashboard() {
         <FlatList
           data={cars}
           renderItem={({ item }) => (
-            <CarCard car={item} onPress={(id) => router.push(`/(renter)/${id}`)} />
+            <CarCard car={item} role="renter" onPress={(id) => router.push(`/(renter)/${id}`)} />
           )}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native'
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { Text, TextInput, Button, Surface, Switch, Snackbar, useTheme } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../../../src/lib/supabase'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { mimeToExt, uriToBlob } from '../../../src/lib/upload'
+import { showAlert } from '../../../src/lib/alert'
 import { DepartmentPicker } from '../../../src/components/DepartmentPicker'
 import { TagSelector } from '../../../src/components/TagSelector'
 import type { Tables } from '../../../src/types/database'
@@ -33,6 +34,7 @@ const schema = z.object({
     (v) => !v || (!isNaN(parseFloat(v)) && parseFloat(v) >= 0),
     'Depósito inválido'
   ),
+  location: z.string().optional(),
   description: z.string().optional(),
 })
 
@@ -52,6 +54,7 @@ export default function EditCarScreen() {
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
+  const previousImageUrl = useRef<string | null>(null)
 
   const carId = Number(id)
 
@@ -59,7 +62,7 @@ export default function EditCarScreen() {
     resolver: zodResolver(schema),
     defaultValues: {
       brand: '', model: '', year: String(new Date().getFullYear()),
-      color: '', price_per_day: '', deposit_per_day: '', description: '',
+      color: '', price_per_day: '', deposit_per_day: '', description: '', location: '',
     },
   })
 
@@ -82,6 +85,7 @@ export default function EditCarScreen() {
         color: car.color ?? '',
         price_per_day: String(car.price_per_day),
         deposit_per_day: car.deposit_per_day ? String(car.deposit_per_day) : '',
+        location: car.location ?? '',
         description: car.description ?? '',
       })
       setDepartmentId(car.department_id)
@@ -91,15 +95,16 @@ export default function EditCarScreen() {
       }).filter((id) => id > 0) ?? [])
       setAvailable(car.available ?? true)
       setImageUrl(car.image_url)
+      previousImageUrl.current = car.image_url
       setLoading(false)
     }
     load()
-  }, [carId])
+  }, [carId, reset])
 
   const pickAndUploadImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
-      Alert.alert('Permiso requerido', 'Habilita el acceso a tus fotos en Configuración para subir una imagen.')
+      showAlert('Permiso requerido', 'Habilita el acceso a tus fotos en Configuración para subir una imagen.')
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -151,29 +156,32 @@ export default function EditCarScreen() {
     const price_per_day = parseFloat(form.price_per_day)
     const deposit_per_day = form.deposit_per_day ? parseFloat(form.deposit_per_day) : null
 
-    const { error: carError } = await supabase.from('cars').update({
-      brand: form.brand,
-      model: form.model,
-      year,
-      color: form.color || null,
-      price_per_day,
-      deposit_per_day,
-      description: form.description || null,
-      department_id: departmentId,
-      available,
-      image_url: imageUrl,
-    }).eq('id', carId)
+    const { error: rpcError } = await supabase.rpc('update_car', {
+      p_car_id: carId,
+      p_brand: form.brand,
+      p_model: form.model,
+      p_year: year,
+      p_color: form.color || null,
+      p_price_per_day: price_per_day,
+      p_deposit_per_day: deposit_per_day,
+      p_description: form.description || null,
+      p_location: form.location || null,
+      p_department_id: departmentId,
+      p_available: available,
+      p_image_url: imageUrl,
+      p_tag_ids: selectedTags,
+    })
 
-    if (carError) { setError('root', { message: carError.message }); return }
+    if (rpcError) { setError('root', { message: rpcError.message }); return }
 
-    const { error: deleteTagsError } = await supabase.from('car_tags').delete().eq('car_id', carId)
-    if (deleteTagsError) { setError('root', { message: deleteTagsError.message }); return }
-
-    if (selectedTags.length > 0) {
-      const { error: tagsError } = await supabase.from('car_tags').insert(
-        selectedTags.map((tagId) => ({ car_id: carId, tag_id: tagId }))
-      )
-      if (tagsError) { setError('root', { message: tagsError.message }); return }
+    // Clean up the previous image from storage if it was replaced or removed
+    if (previousImageUrl.current && previousImageUrl.current !== imageUrl) {
+      try {
+        const path = previousImageUrl.current.split('/car-images/')[1]
+        if (path) await supabase.storage.from('car-images').remove([decodeURIComponent(path)])
+      } catch {
+        // best-effort cleanup
+      }
     }
 
     setSnackbar({ visible: true, message: 'Auto actualizado exitosamente' })
@@ -263,6 +271,15 @@ export default function EditCarScreen() {
 
         <Controller
           control={control}
+          name="location"
+          render={({ field: { onChange, value } }) => (
+            <TextInput label="Ubicación (ej. Managua, Masaya)" value={value} onChangeText={onChange}
+              mode="outlined" style={styles.input} disabled={isSubmitting} />
+          )}
+        />
+
+        <Controller
+          control={control}
           name="description"
           render={({ field: { onChange, value } }) => (
             <TextInput label="Descripción (opcional)" value={value} onChangeText={onChange}
@@ -320,7 +337,7 @@ export default function EditCarScreen() {
           <Button mode="outlined" onPress={() => router.back()} style={styles.actionBtn}>
             Cancelar
           </Button>
-          <Button mode="contained" onPress={handleSubmit(onSubmit)}
+          <Button mode="contained" onPress={() => handleSubmit(onSubmit)()}
             loading={isSubmitting} disabled={isSubmitting || uploading} style={styles.actionBtn}>
             Guardar cambios
           </Button>

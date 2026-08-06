@@ -43,12 +43,13 @@ export function NotificationsList() {
     const d = notificationData(item.data)
     const type = d.type as string | undefined
     const bookingId = d.booking_id as number | undefined
+    const paymentIntentId = d.payment_intent_id as number | undefined
     if (!role) return
     const group = role === 'owner' ? '/(owner)' : role === 'admin' ? '/(admin)' : '/(renter)'
     if (type === 'booking' && bookingId) {
       router.navigate(`${group}/bookings/${bookingId}`)
-    } else if (type === 'admin_review' && bookingId) {
-      router.navigate(`/(admin)/payments/${bookingId}`)
+    } else if (type === 'admin_review') {
+      router.navigate(`/(admin)/payments/${paymentIntentId ?? bookingId}`)
     }
   }, [markAsRead, role])
 

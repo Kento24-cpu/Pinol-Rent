@@ -2,6 +2,7 @@ import { View, Image, StyleSheet } from 'react-native'
 import { Text, Card, Chip, Icon, useTheme } from 'react-native-paper'
 import { RATING_COLOR } from '../lib/theme'
 import { useState, memo } from 'react'
+import { OWNER_COMMISSION, RENTER_FEE, ownerNetPrice, ownerCommissionAmount, renterUnitPrice, renterFeeAmount } from '../lib/commission'
 
 interface CarCardCar {
   id: number
@@ -23,9 +24,10 @@ interface CarCardCar {
 interface CarCardProps {
   car: CarCardCar
   onPress: (id: number) => void
+  role?: 'owner' | 'renter'
 }
 
-export const CarCard = memo(function CarCard({ car, onPress }: CarCardProps) {
+export const CarCard = memo(function CarCard({ car, onPress, role }: CarCardProps) {
   const { colors } = useTheme()
   const [imageError, setImageError] = useState(false)
 
@@ -90,6 +92,34 @@ export const CarCard = memo(function CarCard({ car, onPress }: CarCardProps) {
           ${car.price_per_day}/día
         </Text>
 
+        {role === 'renter' && (
+          <View style={styles.commissionRow}>
+            <Icon source="plus-circle" size={14} color={colors.onSurfaceVariant} />
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginLeft: 4 }}>
+              ${renterFeeAmount(car.price_per_day)}/día ({Math.round(RENTER_FEE * 100)}% servicio)
+            </Text>
+          </View>
+        )}
+        {role === 'renter' && (
+          <Text variant="bodyMedium" style={[styles.netPrice, { color: colors.onSurface }]}>
+            ${renterUnitPrice(car.price_per_day)}/día — costo total
+          </Text>
+        )}
+
+        {role === 'owner' && (
+          <View style={styles.commissionRow}>
+            <Icon source="minus-circle" size={14} color={colors.onSurfaceVariant} />
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginLeft: 4 }}>
+              -${ownerCommissionAmount(car.price_per_day)}/día ({OWNER_COMMISSION * 100}% comisión)
+            </Text>
+          </View>
+        )}
+        {role === 'owner' && (
+          <Text variant="bodyMedium" style={[styles.netPrice, { color: colors.primary }]}>
+            ${ownerNetPrice(car.price_per_day)}/día — recibes
+          </Text>
+        )}
+
         {car.deposit_per_day && (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginBottom: 8 }}>
             Depósito: ${car.deposit_per_day}/día
@@ -129,4 +159,6 @@ const styles = StyleSheet.create({
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 4 },
   chip: { height: 28 },
   chipText: { fontSize: 11 },
+  commissionRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  netPrice: { fontWeight: 'bold', marginBottom: 8 },
 })

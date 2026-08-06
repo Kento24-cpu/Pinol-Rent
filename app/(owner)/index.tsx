@@ -14,9 +14,11 @@ export default function OwnerDashboard() {
   const { cars, loading, refreshing, error, fetchCars, cancel, clearError } = useCars({ ownerId: user?.id })
 
   useFocusEffect(useCallback(() => {
+    // Wait for the session: without ownerId the hook would fetch public cars
+    if (!user?.id) return
     fetchCars()
     return cancel
-  }, [fetchCars, cancel]))
+  }, [fetchCars, cancel, user?.id]))
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -42,7 +44,7 @@ export default function OwnerDashboard() {
         <FlatList
           data={cars}
           renderItem={({ item }) => (
-            <CarCard car={item} onPress={(id) => router.push(`/(owner)/${id}`)} />
+            <CarCard car={item} role="owner" onPress={(id) => router.push(`/(owner)/${id}`)} />
           )}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}

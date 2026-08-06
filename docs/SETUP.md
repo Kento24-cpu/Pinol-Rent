@@ -19,7 +19,41 @@ EXPO_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=tu-anon-key
 ```
 
-4. Ir a SQL Editor en Supabase, pegar y ejecutar `supabase/migrations/20240001000000_init.sql`
+4. Aplicar las migraciones en orden (`supabase/migrations/*.sql`). Con la CLI local:
+
+```bash
+supabase link --project-ref <tu-proyecto>
+supabase db push
+```
+
+> Si migras desde el esquema viejo (migración 20240001000000_init.sql), aplica las
+> siguientes en orden: `20240024000000_commissions.sql`, `20240024000001_admin_rpc_security.sql`,
+> `20240024000002_lazy_expire.sql`, `20240024000003_admin_code_guc.sql`,
+> `20240024000004_realtime_tables.sql`, `20240024000005_car_rpcs.sql`,
+> `20240024000006_mark_read_reviews.sql`.
+
+5. Configurar los settings del proyecto (Project Settings → Database → Configuration, o con `supabase config`) para que los GUCs declarados en `[db.settings]` de `supabase/config.toml` tengan los valores reales de producción:
+
+```env
+app.settings.admin_secret_code=<código secreto de admin>
+app.settings.commission_rate=<0.05>
+app.settings.service_fee_rate=<0.07>
+app.settings.pending_expiry_minutes=<30>
+```
+
+> Sin estos valores, la app usa los defaults razonables (5% comisión, 7% fee, 30 min,
+> código admin en `_settings`). **Siempre** cambia el código admin antes de publicar.
+
+6. Desplegar las edge functions:
+
+```bash
+supabase functions deploy process-payment
+supabase functions deploy notify-booking
+supabase functions deploy notify-chat
+```
+
+> `process-payment` requiere JWT (`verify_jwt = true`) y un bucket `chat-attachments`
+> + `car-images` en Storage con las políticas del doc de base de datos.
 
 ## 3. Ejecutar en desarrollo
 

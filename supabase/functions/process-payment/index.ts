@@ -18,7 +18,23 @@ serve(async (req) => {
       return corsResponse('server config error', 500)
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // verify_jwt = true: authenticate the caller before accepting card data
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return corsResponse('no autorizado', 401)
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return corsResponse('no autorizado', 401)
+    }
 
     const { booking_id, card_number, card_holder, expiry } = await req.json()
 
@@ -50,12 +66,18 @@ serve(async (req) => {
 
     const { data: booking } = await supabase
       .from('bookings')
-      .select('total_price')
+      .select('id, renter_id, status, total_price')
       .eq('id', booking_id)
       .single()
 
     if (!booking) {
       return corsResponse('booking not found', 404)
+    }
+    if (booking.renter_id !== user.id) {
+      return corsResponse('no autorizado para esta reserva', 403)
+    }
+    if (booking.status !== 'pending_payment') {
+      return corsResponse('la reserva no está pendiente de pago', 409)
     }
 
     const { error } = await supabase
@@ -69,6 +91,9 @@ serve(async (req) => {
       })
 
     if (error) {
+      if (error.code === '23505') {
+        return corsResponse('ya existe un pago pendiente para esta reserva', 409)
+      }
       console.error('insert error', error)
       return corsResponse('failed to create payment intent', 500)
     }

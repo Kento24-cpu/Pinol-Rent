@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, handleCors, corsResponse } from '../_shared/cors.ts'
-import { sendPush } from '../_shared/push.ts'
+import { sendPush, pushTokensForUser, ANDROID_CHANNEL_ID } from '../_shared/push.ts'
 
 interface PgNetPayload {
   type: 'INSERT' | 'UPDATE'
@@ -106,8 +106,8 @@ serve(async (req) => {
     if (payload.old_record?.status === 'pending_payment') {
       targets.push({
         userId: payload.record.renter_id,
-        title: 'Solicitud de pago rechazada',
-        body: `Tu solicitud de pago para ${car.brand} ${car.model} no fue aprobada. Si tienes dudas, contacta al equipo de Pinol-Rent.`,
+        title: 'Solicitud de pago cerrada',
+        body: `Tu solicitud de pago para ${car.brand} ${car.model} fue cancelada o expiró. Si tienes dudas, contacta al equipo de Pinol-Rent.`,
         data: { booking_id: payload.record.id, type: 'booking' },
       })
     } else {
@@ -130,12 +130,9 @@ serve(async (req) => {
   }
 
   for (const t of targets) {
-    const { data: tokens } = await supabase
-      .from('push_tokens')
-      .select('token')
-      .eq('user_id', t.userId)
+    const tokens = await pushTokensForUser(supabase, t.userId, 'booking_push')
 
-    if (tokens && tokens.length > 0) {
+    if (tokens.length > 0) {
       await sendPush(
         supabaseUrl, supabaseKey,
         tokens.map((tk: { token: string }) => ({
@@ -143,6 +140,7 @@ serve(async (req) => {
           sound: 'default' as const,
           title: t.title,
           body: t.body.slice(0, 100),
+          channelId: ANDROID_CHANNEL_ID,
           data: t.data,
         })),
       )
@@ -162,6 +160,17 @@ serve(async (req) => {
       .select('id')
       .eq('role', 'admin')
 
+    // Admin deep-link needs the payment_intent_id, not the booking id
+    const { data: intent } = await supabase
+      .from('payment_intents')
+      .select('id')
+      .eq('booking_id', payload.record.id)
+      .maybeSingle()
+
+    const adminData = intent
+      ? { booking_id: payload.record.id, payment_intent_id: intent.id, type: 'admin_review' }
+      : { booking_id: payload.record.id, type: 'admin_review' }
+
     if (admins && admins.length > 0) {
       const { data: adminTokens } = await supabase
         .from('push_tokens')
@@ -176,7 +185,8 @@ serve(async (req) => {
             sound: 'default' as const,
             title: adminTitle,
             body: adminBody.slice(0, 100),
-            data: { booking_id: payload.record.id, type: 'admin_review' },
+            channelId: ANDROID_CHANNEL_ID,
+            data: adminData,
           })),
         )
       }
@@ -186,7 +196,7 @@ serve(async (req) => {
           user_id: admin.id,
           title: adminTitle,
           body: adminBody.slice(0, 200),
-          data: { booking_id: payload.record.id, type: 'admin_review' },
+          data: adminData,
         }).maybeSingle()
       }
     }

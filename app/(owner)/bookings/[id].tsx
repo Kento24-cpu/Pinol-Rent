@@ -4,7 +4,9 @@ import { Text, Button, Surface, Chip, Snackbar, useTheme, Icon } from 'react-nat
 import { router, useLocalSearchParams } from 'expo-router'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { STATUS_COLORS, STATUS_LABELS } from '../../../src/lib/bookingStatus'
+import { OWNER_COMMISSION } from '../../../src/lib/commission'
 import { useAuthStore } from '../../../src/stores/authStore'
+import { findOrCreateConversation } from '../../../src/lib/chat'
 import { supabase } from '../../../src/lib/supabase'
 import type { BookingWithRelations } from '../../../src/types/database.types'
 
@@ -27,6 +29,31 @@ export default function OwnerBookingDetailScreen() {
   }, [bookingId, fetchBooking])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`owner-booking-${bookingId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'bookings',
+        filter: `id=eq.${bookingId}`,
+      }, (payload) => {
+        const newStatus = (payload.new as { status?: string }).status
+        const oldStatus = (payload.old as { status?: string }).status
+        if (newStatus && newStatus !== oldStatus) {
+          load()
+          const label = newStatus === 'confirmed' ? 'confirmada'
+            : newStatus === 'cancelled' ? 'cancelada'
+            : newStatus === 'completed' ? 'completada'
+            : newStatus
+          setSnackbar({ visible: true, message: `Reserva ${label}` })
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [bookingId, load])
 
   const updateStatus = async (status: 'confirmed' | 'cancelled' | 'completed') => {
     setUpdating(true)
@@ -105,13 +132,24 @@ export default function OwnerBookingDetailScreen() {
 
         <View style={[styles.divider, { backgroundColor: colors.outline }]} />
 
-        <Text variant="titleLarge" style={[styles.price, { color: colors.primary }]}>
-          ${booking.total_price.toLocaleString()}
-        </Text>
-
-        {booking.unit_price && (
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            ${booking.unit_price} × {days} día{days > 1 ? 's' : ''}
+        {booking.unit_price ? (
+          <>
+            <View style={styles.netRow}>
+              <Icon source="minus-circle" size={16} color={colors.onSurfaceVariant} />
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginLeft: 6 }}>
+                -{OWNER_COMMISSION * 100}% comisión (${(booking.owner_commission ?? 0).toLocaleString()})
+              </Text>
+            </View>
+            <Text variant="titleLarge" style={[styles.price, { color: colors.primary }]}>
+              ${(booking.owner_net_total ?? booking.total_price).toLocaleString()}
+            </Text>
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+              Total recibido
+            </Text>
+          </>
+        ) : (
+          <Text variant="titleLarge" style={[styles.price, { color: colors.primary }]}>
+            ${booking.total_price.toLocaleString()}
           </Text>
         )}
       </Surface>
@@ -171,14 +209,11 @@ export default function OwnerBookingDetailScreen() {
       {booking.status !== 'cancelled' && (
         <Button mode="text" icon="forum" onPress={async () => {
           if (!userId || !booking?.car_id) return
-          const { data: conv } = await supabase
-            .from('conversations')
-            .select('id')
-            .eq('car_id', booking.car_id)
-            .eq('renter_id', booking.renter_id)
-            .maybeSingle()
-          if (conv) {
-            router.push(`/(owner)/conversations/${conv.id}`)
+          try {
+            const convId = await findOrCreateConversation(booking.car_id, userId, booking.renter_id)
+            router.push(`/(owner)/conversations/${convId}`)
+          } catch (e) {
+            setSnackbar({ visible: true, message: (e as Error).message })
           }
         }} style={{ margin: 16 }}>
           Ver conversación
@@ -202,6 +237,7 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
   divider: { height: 1, marginVertical: 16 },
   price: { fontWeight: 'bold' },
+  netRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   actionRow: { flexDirection: 'row', gap: 12 },
   actionBtn: { flex: 1, borderRadius: 12 },
 })

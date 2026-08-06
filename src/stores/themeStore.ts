@@ -1,17 +1,30 @@
 import { useState, useEffect } from 'react'
+import { Platform, useColorScheme } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
-import { useColorScheme } from 'react-native'
 
 type ThemeMode = 'system' | 'light' | 'dark'
 
 const STORAGE_KEY = 'theme_mode'
+
+// SecureStore is a no-op on web (its methods reject), so use localStorage there
+const storage = {
+  getItem: async (key: string) =>
+    Platform.OS === 'web' ? (typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null) : SecureStore.getItemAsync(key),
+  setItem: async (key: string, value: string) => {
+    if (Platform.OS === 'web') {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(key, value)
+      return
+    }
+    return SecureStore.setItemAsync(key, value)
+  },
+}
 
 let globalThemeMode: ThemeMode = 'system'
 let listeners: Array<() => void> = []
 
 async function loadTheme(): Promise<ThemeMode> {
   try {
-    const stored = await SecureStore.getItemAsync(STORAGE_KEY)
+    const stored = await storage.getItem(STORAGE_KEY)
     if (stored === 'light' || stored === 'dark' || stored === 'system') return stored
   } catch {}
   return 'system'
@@ -23,7 +36,7 @@ export function getStoredTheme(): ThemeMode {
 
 export function setStoredTheme(mode: ThemeMode) {
   globalThemeMode = mode
-  SecureStore.setItemAsync(STORAGE_KEY, mode).catch(() => {})
+  storage.setItem(STORAGE_KEY, mode).catch(() => {})
   listeners.forEach((fn) => fn())
 }
 

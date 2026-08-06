@@ -56,7 +56,10 @@ export const supabase = createClient<Database>(
       storage: createStorage(),
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: false,
+      // Web: parse tokens from email-confirmation / password-reset links.
+      // Native: deep links are handled by the auth flow itself.
+      detectSessionInUrl: Platform.OS === 'web',
+      flowType: 'pkce',
     },
   }
 )

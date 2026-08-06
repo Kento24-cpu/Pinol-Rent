@@ -72,7 +72,11 @@ export function useNotifications({ subscribe = true }: { subscribe?: boolean } =
         },
         (payload: RealtimePostgresChangesPayload<NotificationRow>) => {
           const newNotif = payload.new as NotificationRow
-          setNotifications((prev) => [newNotif, ...prev])
+          setNotifications((prev) => {
+            // Dedupe: realtime events may be redelivered after reconnects
+            if (prev.some((n) => n.id === newNotif.id)) return prev
+            return [newNotif, ...prev]
+          })
           setUnreadCount((prev) => prev + 1)
         },
       )

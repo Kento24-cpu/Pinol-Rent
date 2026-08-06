@@ -54,7 +54,9 @@ export default function OwnerConversationsScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const latest = Array.isArray(item.latest_message) ? item.latest_message[0] : item.latest_message
+          return (
           <TouchableOpacity onPress={() => router.push(`/(owner)/conversations/${item.id}`)}>
             <Card style={styles.card} mode="elevated" elevation={1}>
               <View style={styles.row}>
@@ -75,25 +77,26 @@ export default function OwnerConversationsScreen() {
                     <Text variant="titleSmall" style={{ fontWeight: 'bold', flex: 1 }} numberOfLines={1}>
                       {item.renter?.full_name ?? 'Arrendatario'}
                     </Text>
-                    {item.latest_message && (
+                    {latest && (
                       <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
-                        {item.latest_message.created_at ? new Date(item.latest_message.created_at).toLocaleDateString() : ''}
+                        {latest.created_at ? new Date(latest.created_at).toLocaleDateString() : ''}
                       </Text>
                     )}
                   </View>
                   <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
                     {item.car ? `${item.car.brand} ${item.car.model}` : 'Auto'}
                   </Text>
-                  {item.latest_message && (
+                  {latest && (
                     <Text variant="bodyMedium" numberOfLines={1} style={{ marginTop: 2 }}>
-                      {item.latest_message.content}
+                      {latest.content}
                     </Text>
                   )}
                 </View>
               </View>
             </Card>
           </TouchableOpacity>
-        )}
+          )
+        }}
         contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
       />
     </View>

@@ -70,13 +70,37 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 }
 
-function navigateFromNotification(data: Record<string, unknown>) {
+function waitForRole(timeoutMs: number): Promise<string | null> {
+  return new Promise((resolve) => {
+    const startedAt = Date.now()
+    const check = () => {
+      const role = useAuthStore.getState().role
+      if (role) {
+        resolve(role)
+        return
+      }
+      if (Date.now() - startedAt > timeoutMs) {
+        resolve(null)
+        return
+      }
+      setTimeout(check, 250)
+    }
+    check()
+  })
+}
+
+async function navigateFromNotification(data: Record<string, unknown>) {
   const type = data.type as string | undefined
   const bookingId = data.booking_id as number | undefined
+  const paymentIntentId = data.payment_intent_id as number | undefined
   const conversationId = data.conversation_id as number | undefined
   const carId = data.car_id as number | undefined
-  const role = useAuthStore.getState().role
 
+  let role: string | null = useAuthStore.getState().role
+  if (!role) {
+    // Cold start: the profile/role may still be loading, wait for it briefly
+    role = await waitForRole(10_000)
+  }
   if (!role) return
   const group = role === 'owner' ? '/(owner)' : role === 'admin' ? '/(admin)' : '/(renter)'
 
@@ -84,6 +108,8 @@ function navigateFromNotification(data: Record<string, unknown>) {
     router.navigate(`${group}/bookings/${bookingId}`)
   } else if (type === 'chat' && conversationId) {
     router.navigate(`${group}/conversations/${conversationId}`)
+  } else if (type === 'admin_review') {
+    router.navigate(`/(admin)/payments/${paymentIntentId ?? bookingId}`)
   } else if (carId) {
     router.navigate(`${group}/${carId}`)
   }

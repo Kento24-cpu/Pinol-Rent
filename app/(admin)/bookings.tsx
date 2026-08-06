@@ -3,22 +3,7 @@ import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Chip, useTheme, Icon, Searchbar } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAdminBookings } from '../../src/hooks/useAdminBookings'
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: '#F57F17',
-  pending_payment: '#1565C0',
-  confirmed: '#2E7D32',
-  completed: '#1B5E20',
-  cancelled: '#C62828',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  pending_payment: 'Esperando pago',
-  confirmed: 'Confirmada',
-  completed: 'Completada',
-  cancelled: 'Cancelada',
-}
+import { STATUS_COLORS, STATUS_LABELS } from '../../src/lib/bookingStatus'
 
 export default function AdminBookingsScreen() {
   const { colors } = useTheme()
@@ -56,7 +41,8 @@ export default function AdminBookingsScreen() {
               {item.car_brand} {item.car_model}
             </Text>
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 2 }}>
-              {item.renter_name} — {item.renter_email}
+              {item.renter_name}
+              {item.renter_email ? ` — ${item.renter_email}` : ''}
             </Text>
           </View>
           <Chip style={{ backgroundColor: statusColor + '20' }} textStyle={{ fontSize: 11, color: statusColor, fontWeight: 'bold' }}>

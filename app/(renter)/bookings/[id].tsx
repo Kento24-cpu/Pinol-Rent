@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Chip, Snackbar, useTheme, Icon, TextInput, Portal, Dialog } from 'react-native-paper'
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
@@ -6,6 +6,7 @@ import { useBookings } from '../../../src/hooks/useBookings'
 import { useReviews } from '../../../src/hooks/useReviews'
 import { RatingInput } from '../../../src/components/RatingInput'
 import { STATUS_COLORS, STATUS_LABELS } from '../../../src/lib/bookingStatus'
+import { RENTER_FEE, renterFeeAmount } from '../../../src/lib/commission'
 import { findOrCreateConversation } from '../../../src/lib/chat'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { supabase } from '../../../src/lib/supabase'
@@ -26,6 +27,7 @@ export default function RenterBookingDetailScreen() {
   const [reviewComment, setReviewComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
+  const userInitiatedRef = useRef(false)
 
   const bookingId = Number(bookingIdParam)
 
@@ -56,6 +58,10 @@ export default function RenterBookingDetailScreen() {
         const oldStatus = (payload.old as { status?: string }).status
         if (newStatus && newStatus !== oldStatus) {
           load()
+          if (userInitiatedRef.current) {
+            userInitiatedRef.current = false
+            return
+          }
           const label = newStatus === 'confirmed' ? 'confirmada'
             : newStatus === 'cancelled' ? 'cancelada'
             : newStatus === 'completed' ? 'completada'
@@ -70,6 +76,7 @@ export default function RenterBookingDetailScreen() {
   }, [bookingId, load])
 
   const handleCancel = async () => {
+    userInitiatedRef.current = true
     setUpdating(true)
     try {
       await cancelBooking(bookingId)
@@ -131,13 +138,21 @@ export default function RenterBookingDetailScreen() {
 
         <View style={[styles.divider, { backgroundColor: colors.outline }]} />
 
-        <Text variant="titleLarge" style={[styles.price, { color: colors.primary }]}>
-          ${booking.total_price.toLocaleString()}
-        </Text>
-
-        {booking.unit_price && (
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            ${booking.unit_price} × {days} día{days > 1 ? 's' : ''}
+        {booking.unit_price ? (
+          <>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+              ${booking.unit_price} × {days} día{days > 1 ? 's' : ''} = ${(booking.unit_price * days).toLocaleString()}
+            </Text>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+              + {Math.round(RENTER_FEE * 100)}% servicio = ${(booking.renter_service_fee ?? renterFeeAmount(booking.unit_price, days)).toLocaleString()}
+            </Text>
+            <Text variant="titleLarge" style={[styles.price, { color: colors.primary }]}>
+              ${booking.total_price.toLocaleString()}
+            </Text>
+          </>
+        ) : (
+          <Text variant="titleLarge" style={[styles.price, { color: colors.primary }]}>
+            ${booking.total_price.toLocaleString()}
           </Text>
         )}
       </Surface>
@@ -145,8 +160,16 @@ export default function RenterBookingDetailScreen() {
       {booking.status === 'pending_payment' && (
         <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>
           <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 12, color: colors.onSurfaceVariant }}>
-            Tu pago está siendo revisado. Te notificaremos cuando sea aprobado.
+            Tu pago está siendo revisado. Si no completaste el pago, puedes reintentarlo.
           </Text>
+          <Button
+            mode="contained"
+            icon="credit-card"
+            onPress={() => router.push(`/(renter)/book/${booking.car_id}?existingBookingId=${booking.id}`)}
+            style={styles.retryBtn}
+          >
+            Reintentar pago
+          </Button>
           <Button
             mode="outlined"
             icon="close"
@@ -270,6 +293,7 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
   divider: { height: 1, marginVertical: 16 },
   price: { fontWeight: 'bold' },
-  cancelBtn: { borderRadius: 12, borderColor: '#C62828' },
+  cancelBtn: { borderRadius: 12, borderColor: '#C62828', marginTop: 12 },
+  retryBtn: { borderRadius: 12 },
   ratingBtn: { borderRadius: 12 },
 })

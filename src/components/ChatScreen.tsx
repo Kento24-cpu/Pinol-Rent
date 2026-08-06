@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TextInput as RNTextInput, Alert, type NativeSyntheticEvent, type TextInputKeyPressEventData } from 'react-native'
+import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TextInput as RNTextInput, Image, type NativeSyntheticEvent, type TextInputKeyPressEventData } from 'react-native'
 import { Text, IconButton, useTheme, ActivityIndicator, Avatar, Icon, Snackbar } from 'react-native-paper'
 import * as ImagePicker from 'expo-image-picker'
 import { useChat } from '../hooks/useChat'
+import { showAlert } from '../lib/alert'
 import type { MessageWithSender } from '../types/database.types'
 import { useAuthStore } from '../stores/authStore'
 import { useChatStore } from '../stores/chatStore'
@@ -43,7 +44,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
   const handleAttach = useCallback(async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
-      Alert.alert('Permiso requerido', 'Habilita el acceso a tus fotos para enviar imágenes.')
+      showAlert('Permiso requerido', 'Habilita el acceso a tus fotos para enviar imágenes.')
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -79,7 +80,14 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
           isOwn ? styles.bubbleOwn : styles.bubbleOther,
           !isOwn && { borderWidth: 1, borderColor: colors.outline },
         ]}>
-          {item.attachment_url && (
+          {item.attachment_signed_url && (
+            <Image
+              source={{ uri: item.attachment_signed_url }}
+              style={[styles.attachmentImage, { borderRadius: 10 }]}
+              resizeMode="cover"
+            />
+          )}
+          {item.attachment_url && !item.attachment_signed_url && (
             <View style={styles.attachment}>
               <Icon source="image" size={16} color={isOwn ? colors.onPrimary : colors.onSurfaceVariant} />
               <Text variant="bodySmall" style={{ color: isOwn ? colors.onPrimaryContainer : colors.onSurfaceVariant, marginLeft: 4 }}>
@@ -189,6 +197,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   attachment: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  attachmentImage: { width: 200, height: 150, marginBottom: 4, borderRadius: 10 },
   msgMeta: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 2 },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   emptyContainer: { flex: 1 },

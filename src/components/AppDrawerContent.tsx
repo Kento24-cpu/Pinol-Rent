@@ -7,6 +7,8 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import { useThemeStore } from '../stores/themeStore'
 import { router } from 'expo-router'
+import * as Notifications from 'expo-notifications'
+import Constants from 'expo-constants'
 
 export function AppDrawerContent(props: DrawerContentComponentProps) {
   const { colors } = useTheme()
@@ -32,6 +34,18 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
   const handleLogout = async () => {
     setShowLogout(false)
     try {
+      // Remove stale push tokens for this device before signing out
+      if (Platform.OS !== 'web') {
+        try {
+          const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId
+          if (projectId && session?.user) {
+            const tokenData = await Notifications.getExpoPushTokenAsync({ projectId })
+            await supabase.from('push_tokens').delete().eq('token', tokenData.data)
+          }
+        } catch {
+          // token cleanup is best-effort
+        }
+      }
       await supabase.auth.signOut()
     } catch (e) {
       console.warn('Logout error', e)

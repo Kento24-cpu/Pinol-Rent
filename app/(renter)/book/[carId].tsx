@@ -8,9 +8,10 @@ import { useAuthStore } from '../../../src/stores/authStore'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { usePaymentIntents } from '../../../src/hooks/usePaymentIntents'
 import { DateRangePicker } from '../../../src/components/DateRangePicker'
+import { RENTER_FEE, renterTotalPrice, renterFeeAmount } from '../../../src/lib/commission'
 
 export default function BookCarScreen() {
-  const { carId: carIdParam } = useLocalSearchParams<{ carId: string }>()
+  const { carId: carIdParam, existingBookingId } = useLocalSearchParams<{ carId: string; existingBookingId?: string }>()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const user = useAuthStore((s) => s.session?.user)
@@ -21,18 +22,40 @@ export default function BookCarScreen() {
   const [fetchError, setFetchError] = useState(false)
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
-  const [booking, setBooking] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [bookingId, setBookingId] = useState<number | null>(null)
   const [totalPrice, setTotalPrice] = useState(0)
+  const [unitPrice, setUnitPrice] = useState(0)
   const [days, setDays] = useState(0)
   const [cardNumber, setCardNumber] = useState('')
   const [cardHolder, setCardHolder] = useState('')
   const [expiry, setExpiry] = useState('')
 
   const [submittingPayment, setSubmittingPayment] = useState(false)
+  const [disabledDates, setDisabledDates] = useState<string[]>([])
 
   const carId = Number(carIdParam)
+
+  useEffect(() => {
+    if (!carId || isNaN(carId)) return
+    supabase
+      .rpc('get_booked_ranges', { p_car_id: carId })
+      .then(({ data }) => {
+        if (!data) return
+        const dates = new Set<string>()
+        for (const range of data) {
+          let d = new Date(`${range.start_date}T00:00:00`)
+          const end = new Date(`${range.end_date}T00:00:00`)
+          while (d <= end) {
+            dates.add(
+              `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+            )
+            d.setDate(d.getDate() + 1)
+          }
+        }
+        setDisabledDates([...dates])
+      })
+  }, [carId])
 
   useEffect(() => {
     if (!carId || isNaN(carId)) { setFetchError(true); setLoading(false); return }
@@ -41,36 +64,60 @@ export default function BookCarScreen() {
       .select('brand, model, price_per_day, deposit_per_day')
       .eq('id', carId)
       .single()
-      .then(({ data }) => {
-        if (data) setCar(data)
-        else setFetchError(true)
+      .then(async ({ data }) => {
+        if (data) {
+          setCar(data)
+          if (existingBookingId) {
+            const id = Number(existingBookingId)
+            if (isNaN(id)) { setFetchError(true); setLoading(false); return }
+            const { data: booking } = await supabase
+              .from('bookings')
+              .select('id, start_date, end_date, total_price, unit_price, status')
+              .eq('id', id)
+              .single()
+            if (!booking || booking.status !== 'pending_payment') {
+              router.replace(`/(renter)/bookings/${id}`)
+              return
+            }
+            const dayCount = Math.round(
+              (new Date(booking.end_date).getTime() - new Date(booking.start_date).getTime()) / 86400000
+            ) + 1
+            setBookingId(booking.id)
+            setTotalPrice(booking.total_price)
+            setUnitPrice(booking.unit_price ?? data.price_per_day)
+            setDays(dayCount)
+            setShowPayment(true)
+          }
+        } else {
+          setFetchError(true)
+        }
         setLoading(false)
       })
-  }, [carId])
+  }, [carId, existingBookingId])
 
-  const handleSelectDates = useCallback(async (startDate: string, endDate: string, daysCount: number, price: number) => {
+  const handleSelectDates = useCallback(async (startDate: string, endDate: string, daysCount: number) => {
     if (!user) {
       router.push(`/(public)/login?redirect=${encodeURIComponent(`/(renter)/book/${carId}`)}`)
       return
     }
-    setBooking(true)
     try {
       const available = await checkAvailability(carId, startDate, endDate)
       if (!available) {
         setSnackbar({ visible: true, message: 'El auto ya no está disponible para esas fechas' })
-        setBooking(false)
         return
       }
-      const id = await createBooking({ carId, startDate, endDate, totalPrice: price, status: 'pending_payment' })
+      const baseUnitPrice = car?.price_per_day ?? 0
+      const feeIncludedTotal = renterTotalPrice(baseUnitPrice, daysCount)
+      const id = await createBooking({ carId, startDate, endDate, totalPrice: feeIncludedTotal, unitPrice: baseUnitPrice, status: 'pending_payment' })
       setBookingId(id)
-      setTotalPrice(price)
+      setTotalPrice(feeIncludedTotal)
+      setUnitPrice(baseUnitPrice)
       setDays(daysCount)
       setShowPayment(true)
     } catch (e) {
       setSnackbar({ visible: true, message: (e as Error).message })
-      setBooking(false)
     }
-  }, [user, carId, createBooking, checkAvailability])
+  }, [user, carId, car, createBooking, checkAvailability])
 
   const handlePayment = async () => {
     if (!bookingId) return
@@ -125,6 +172,17 @@ export default function BookCarScreen() {
                 Depósito: ${car.deposit_per_day}/día
               </Text>
             )}
+            <View style={styles.feeSummary}>
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+                ${unitPrice} × {days} día{days > 1 ? 's' : ''} = ${(unitPrice * days).toLocaleString()}
+              </Text>
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+                + {Math.round(RENTER_FEE * 100)}% servicio = ${renterFeeAmount(unitPrice, days).toLocaleString()}
+              </Text>
+              <Text variant="titleMedium" style={[styles.totalLabel, { color: colors.onSurface }]}>
+                Total: ${totalPrice.toLocaleString()}
+              </Text>
+            </View>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
               Datos de pago
             </Text>
@@ -195,6 +253,7 @@ export default function BookCarScreen() {
           pricePerDay={car?.price_per_day ?? 0}
           onSelect={handleSelectDates}
           onCancel={() => router.back()}
+          disabledDates={disabledDates}
         />
       </View>
 
@@ -215,4 +274,6 @@ const styles = StyleSheet.create({
   cardRow: { flexDirection: 'row', gap: 12 },
   halfInput: { flex: 1 },
   button: { borderRadius: 12, marginTop: 8 },
+  feeSummary: { marginTop: 12, alignItems: 'center', gap: 2 },
+  totalLabel: { fontWeight: 'bold', marginTop: 4 },
 })

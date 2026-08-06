@@ -5,6 +5,7 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
+import { OWNER_COMMISSION, ownerNetPrice, ownerCommissionAmount } from '../../src/lib/commission'
 import type { CarWithRelations } from '../../src/types/database.types'
 
 export default function OwnerCarDetailScreen() {
@@ -122,6 +123,16 @@ export default function OwnerCarDetailScreen() {
             ${car.price_per_day} <Text variant="bodyMedium">/ día</Text>
           </Text>
 
+          <View style={styles.commissionRow}>
+            <Icon source="minus-circle" size={16} color={colors.onSurfaceVariant} />
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginLeft: 6 }}>
+              -${ownerCommissionAmount(car.price_per_day)}/día ({OWNER_COMMISSION * 100}% comisión)
+            </Text>
+          </View>
+          <Text variant="titleMedium" style={[styles.netPrice, { color: colors.primary }]}>
+            ${ownerNetPrice(car.price_per_day)}/día — recibes
+          </Text>
+
           {car.description && (
             <Text variant="bodyMedium" style={{ marginTop: 16, lineHeight: 22 }}>
               {car.description}
@@ -224,6 +235,8 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginLeft: 8 },
   price: { fontWeight: 'bold' },
+  commissionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  netPrice: { fontWeight: 'bold', marginTop: 2 },
   infoSection: { marginTop: 20, gap: 8 },
   infoRow: { flexDirection: 'row', alignItems: 'center' },
   sectionTitle: { fontWeight: 'bold', marginTop: 20, marginBottom: 8 },

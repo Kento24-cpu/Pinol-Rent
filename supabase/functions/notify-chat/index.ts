@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, handleCors, corsResponse } from '../_shared/cors.ts'
-import { sendPush } from '../_shared/push.ts'
+import { sendPush, pushTokensForUser, ANDROID_CHANNEL_ID } from '../_shared/push.ts'
 
 interface PgNetPayload {
   type: 'INSERT'
@@ -50,12 +50,9 @@ serve(async (req) => {
     ? conv.owner_id
     : conv.renter_id
 
-  const { data: tokens } = await supabase
-    .from('push_tokens')
-    .select('token')
-    .eq('user_id', receiverId)
+  const tokens = await pushTokensForUser(supabase, receiverId, 'chat_push')
 
-  if (!tokens || tokens.length === 0) {
+  if (tokens.length === 0) {
     return corsResponse('no tokens', 200)
   }
 
@@ -66,6 +63,7 @@ serve(async (req) => {
       sound: 'default' as const,
       title: 'Nuevo mensaje',
       body: (payload.record.content ?? '').slice(0, 100),
+      channelId: ANDROID_CHANNEL_ID,
       data: {
         conversation_id: payload.record.conversation_id,
         type: 'chat',

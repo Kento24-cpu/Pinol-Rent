@@ -40,7 +40,8 @@
       [
         "expo-notifications",
         {
-          "color": "#1565C0"
+          "color": "#1565C0",
+          "defaultChannel": "messages"
         }
       ]
     ],
