@@ -719,6 +719,10 @@ export type Database = {
         Args: { p_car_id: number }
         Returns: { start_date: string; end_date: string }[]
       }
+      get_payment_deadline: {
+        Args: { p_booking_id: number }
+        Returns: string | null
+      }
       mark_messages_read: {
         Args: { p_conversation_id: number }
         Returns: number

@@ -140,6 +140,8 @@
 | `publish_car(...)`, `update_car(...)` | SECURITY DEFINER transaccionales; owner = auth.uid() |
 | `mark_messages_read(p_conversation_id)` | SECURITY DEFINER; marca leídos como participante |
 | `decrypt_payment_preview` | solo admin |
+| `get_payment_deadline(p_booking_id)` | SECURITY DEFINER; devuelve `expires_at` del intent pendiente solo si la reserva es de `auth.uid()` |
+| `set_payment_intent_expiry()` | trigger BEFORE INSERT en `payment_intents`; `expires_at = GREATEST(LEAST(start_date medianoche, now()+7 días), now()+30 min)` |
 
 ## RLS Policies
 

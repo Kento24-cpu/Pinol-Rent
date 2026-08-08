@@ -20,6 +20,7 @@ export default function RenterBookingDetailScreen() {
   const { fetchBookingReview, createReview } = useReviews()
   const [booking, setBooking] = useState<BookingWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
+  const [paymentDeadline, setPaymentDeadline] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [review, setReview] = useState<{ id?: number; rating: number; comment: string } | null>(null)
   const [showReviewDialog, setShowReviewDialog] = useState(false)
@@ -34,6 +35,12 @@ export default function RenterBookingDetailScreen() {
   const load = useCallback(async () => {
     const data = await fetchBooking(bookingId)
     setBooking(data)
+    if (data && data.status === 'pending_payment') {
+      const { data: deadline } = await supabase.rpc('get_payment_deadline', { p_booking_id: bookingId })
+      setPaymentDeadline(deadline ?? null)
+    } else {
+      setPaymentDeadline(null)
+    }
     if (data && data.status === 'completed') {
       const existing = await fetchBookingReview(bookingId)
       if (existing) {
@@ -160,7 +167,22 @@ export default function RenterBookingDetailScreen() {
       {booking.status === 'pending_payment' && (
         <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>
           <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 12, color: colors.onSurfaceVariant }}>
-            Tu pago está siendo revisado. Si no completaste el pago, puedes reintentarlo.
+            {paymentDeadline ? (
+              <>
+                Tu pago está siendo revisado. Debes completarlo antes del{' '}
+                <Text variant="bodyMedium" style={{ fontWeight: 'bold', color: colors.onSurface }}>
+                  {new Date(paymentDeadline).toLocaleString('es-ES', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>.
+              </>
+            ) : (
+              'Tu pago está siendo revisado. Si no completaste el pago, puedes reintentarlo.'
+            )}
           </Text>
           <Button
             mode="contained"
