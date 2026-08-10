@@ -1,4 +1,4 @@
-import { View, Image, StyleSheet } from 'react-native'
+import { View, StyleSheet } from 'react-native'
 import { Text, Card, Chip, Icon, useTheme } from 'react-native-paper'
 import { RATING_COLOR } from '../lib/theme'
 import { useState, memo } from 'react'

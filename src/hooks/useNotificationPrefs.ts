@@ -48,6 +48,7 @@ export function useNotificationPrefs() {
     }
   }, [user])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch on mount
   useEffect(() => { fetchPrefs() }, [fetchPrefs])
 
   const updatePref = useCallback(async (key: keyof NotificationPrefs, value: boolean) => {

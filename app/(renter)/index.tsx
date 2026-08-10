@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native'
-import { Text, Button, Searchbar, Snackbar, Chip, useTheme, Icon } from 'react-native-paper'
+import { Text, Button, Searchbar, Snackbar, Chip, useTheme } from 'react-native-paper'
 import { router, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'

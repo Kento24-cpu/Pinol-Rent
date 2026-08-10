@@ -58,6 +58,7 @@ export default function BookCarScreen() {
   }, [carId])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- invalid id guard on mount
     if (!carId || isNaN(carId)) { setFetchError(true); setLoading(false); return }
     supabase
       .from('cars')

@@ -41,11 +41,13 @@ export function useChat(conversationId: number | null) {
     setLoading(false)
   }, [conversationId, user])
 
+  /* eslint-disable react-hooks/set-state-in-effect -- reset chat state on conversation change */
   useEffect(() => {
     setLoading(true)
     setMessages([])
     fetchMessages()
   }, [fetchMessages])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const senderCache = useRef<Record<string, { full_name: string; avatar_url: string | null }>>({})
 

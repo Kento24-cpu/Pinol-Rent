@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, ScrollView, StyleSheet, Modal, Platform } from 'react-native'
+import { View, ScrollView, StyleSheet, Modal } from 'react-native'
 import { Text, Button, Searchbar, useTheme, Icon } from 'react-native-paper'
 
 interface Department {

@@ -32,6 +32,7 @@ function createStorage(): StorageAdapter {
   }
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy load to avoid native module on web
     const SecureStore = require('expo-secure-store') as {
       getItemAsync(key: string): Promise<string | null>
       setItemAsync(key: string, value: string): Promise<void>

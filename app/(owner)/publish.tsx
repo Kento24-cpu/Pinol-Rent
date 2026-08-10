@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { Text, TextInput, Button, Surface, Switch, Snackbar, useTheme } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -127,7 +127,7 @@ export default function PublishScreen() {
     const price_per_day = parseFloat(form.price_per_day)
     const deposit_per_day = form.deposit_per_day ? parseFloat(form.deposit_per_day) : null
 
-    const { data: newCarId, error: rpcError } = await supabase.rpc('publish_car', {
+    const { error: rpcError } = await supabase.rpc('publish_car', {
       p_brand: form.brand,
       p_model: form.model,
       p_year: year,

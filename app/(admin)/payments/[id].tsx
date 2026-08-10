@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
-import { Text, Button, Surface, Chip, Snackbar, useTheme, Icon } from 'react-native-paper'
+import { Text, Button, Surface, Snackbar, useTheme, Icon } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { usePaymentIntents } from '../../../src/hooks/usePaymentIntents'
 
@@ -35,6 +35,7 @@ export default function PaymentDetailScreen() {
     setLoading(false)
   }, [paymentId, getPreview])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async load on mount
   useEffect(() => { load() }, [load])
 
   const handleApprove = async () => {

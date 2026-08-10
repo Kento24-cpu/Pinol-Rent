@@ -27,6 +27,7 @@ export default function CarDetailScreen() {
 
   useEffect(() => {
     if (isNaN(carId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- error state on mount
       setLoading(false)
       setFetchError(true)
       return

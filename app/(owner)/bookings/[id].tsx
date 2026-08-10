@@ -28,6 +28,7 @@ export default function OwnerBookingDetailScreen() {
     setLoading(false)
   }, [bookingId, fetchBooking])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async load on mount
   useEffect(() => { load() }, [load])
 
   useEffect(() => {

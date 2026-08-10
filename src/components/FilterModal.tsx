@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, ScrollView, StyleSheet, Modal } from 'react-native'
-import { Text, Button, TextInput, Surface, Chip, SegmentedButtons, useTheme } from 'react-native-paper'
+import { Text, Button, TextInput, Surface, SegmentedButtons, useTheme } from 'react-native-paper'
 import { TagSelector } from './TagSelector'
 
 interface FilterValues {
@@ -29,6 +29,7 @@ export function FilterModal({ visible, onDismiss, current, onApply, tags }: Filt
 
   useEffect(() => {
     if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync local state with props on open
       setPriceMin(current.priceMin)
       setPriceMax(current.priceMax)
       setTagIds(current.tagIds)

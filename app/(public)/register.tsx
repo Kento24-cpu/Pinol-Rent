@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, Touch
 import { useEffect } from 'react'
 import { Text, TextInput, Button, Surface, SegmentedButtons, useTheme } from 'react-native-paper'
 import { Link } from 'expo-router'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, useWatch, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../../src/lib/supabase'
@@ -50,20 +50,20 @@ type RegisterForm = z.infer<typeof schema>
 export default function RegisterScreen() {
   const { colors } = useTheme()
 
-  const { control, handleSubmit, setError, setValue, watch, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
+  const { control, handleSubmit, setError, setValue, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
     resolver: zodResolver(schema),
     defaultValues: { role: 'renter', email: '', password: '', fullName: '', cedula: '', phone: '', businessName: '', businessAddress: '', adminCode: '' } as any,
   })
 
-  const role = watch('role')
-  const adminCode = watch('adminCode')
+  const role = useWatch({ control, name: 'role' })
+  const adminCode = useWatch({ control, name: 'adminCode' })
   const isAdminMode = (adminCode?.length ?? 0) > 0
 
   useEffect(() => {
-    if (isAdminMode && watch('role') !== 'admin') {
+    if (isAdminMode && role !== 'admin') {
       setValue('role', 'admin')
     }
-  }, [isAdminMode])
+  }, [isAdminMode, role, setValue])
 
   const onSubmit = async (form: RegisterForm) => {
     const effectiveRole = form.adminCode ? 'admin' : form.role

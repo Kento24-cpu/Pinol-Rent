@@ -20,7 +20,7 @@ const storage = {
 }
 
 let globalThemeMode: ThemeMode = 'system'
-let listeners: Array<() => void> = []
+let listeners: (() => void)[] = []
 
 async function loadTheme(): Promise<ThemeMode> {
   try {

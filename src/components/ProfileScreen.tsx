@@ -80,7 +80,7 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
         }
         setLoading(false)
       }, () => setLoading(false))
-  }, [user])
+  }, [user, reset])
 
   const pickAndUploadAvatar = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()

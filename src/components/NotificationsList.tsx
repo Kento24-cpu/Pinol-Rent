@@ -1,7 +1,6 @@
 import { View, FlatList, StyleSheet, RefreshControl } from 'react-native'
 import { Text, Surface, Icon, IconButton, useTheme, ActivityIndicator, Divider } from 'react-native-paper'
 import { router } from 'expo-router'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuthStore } from '../stores/authStore'
 import { useNotifications, type NotificationItem } from '../hooks/useNotifications'
 import { useCallback } from 'react'
@@ -34,7 +33,6 @@ function notificationIcon(data: unknown): string {
 
 export function NotificationsList() {
   const { colors } = useTheme()
-  const insets = useSafeAreaInsets()
   const role = useAuthStore((s) => s.role)
   const { notifications, loading, unreadCount, fetchNotifications, markAsRead, markAllAsRead } = useNotifications()
 

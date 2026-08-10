@@ -6,7 +6,7 @@ import type { Database } from '../types/database'
 
 type NotificationRow = Database['public']['Tables']['notifications']['Row']
 
-export interface NotificationItem extends NotificationRow {}
+export type NotificationItem = NotificationRow
 
 const n = () => supabase.from('notifications')
 
@@ -53,6 +53,7 @@ export function useNotifications({ subscribe = true }: { subscribe?: boolean } =
 
   useEffect(() => {
     if (!user) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch on mount
     fetchNotifications()
     fetchUnreadCount()
   }, [user, fetchNotifications, fetchUnreadCount])

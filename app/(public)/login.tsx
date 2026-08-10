@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native'
+import { ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ImageBackground } from 'react-native'
 import { Text, TextInput, Button, Surface, Dialog, Portal, Snackbar, useTheme } from 'react-native-paper'
 import { Link, router, useLocalSearchParams } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
@@ -36,7 +36,7 @@ export default function LoginScreen() {
     } else {
       router.replace('/(renter)')
     }
-  }, [session, role])
+  }, [session, role, redirect])
 
   const { control, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<LoginForm>({
     resolver: zodResolver(schema),
@@ -181,16 +181,18 @@ export default function LoginScreen() {
     )
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior="padding"
-    >
-      {isNative ? (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          {formContent}
-        </TouchableWithoutFeedback>
-      ) : formContent}
-    </KeyboardAvoidingView>
+    <ImageBackground source={require('../../assets/login-background.jpeg')} style={styles.container} resizeMode="cover">
+      <KeyboardAvoidingView
+        style={[styles.container, { backgroundColor: 'transparent' }]}
+        behavior="padding"
+      >
+        {isNative ? (
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            {formContent}
+          </TouchableWithoutFeedback>
+        ) : formContent}
+      </KeyboardAvoidingView>
+    </ImageBackground>
   )
 }
 
