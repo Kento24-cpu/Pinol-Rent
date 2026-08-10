@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ImageBackground } from 'react-native'
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ImageBackground, useWindowDimensions } from 'react-native'
 import { Text, TextInput, Button, Surface, Dialog, Portal, Snackbar, useTheme } from 'react-native-paper'
 import { Link, router, useLocalSearchParams } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
@@ -17,6 +17,8 @@ type LoginForm = z.infer<typeof schema>
 
 export default function LoginScreen() {
   const { colors } = useTheme()
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions()
+  const portrait = windowHeight > windowWidth
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
   const session = useAuthStore((s) => s.session)
   const role = useAuthStore((s) => s.role)
@@ -180,24 +182,42 @@ export default function LoginScreen() {
       </ScrollView>
     )
 
+  const formArea = (
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: 'transparent' }]}
+      behavior="padding"
+    >
+      {isNative ? (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          {formContent}
+        </TouchableWithoutFeedback>
+      ) : formContent}
+    </KeyboardAvoidingView>
+  )
+
+  if (portrait) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ImageBackground
+          source={require('../../assets/login-background.jpeg')}
+          style={styles.bgPortrait}
+          resizeMode="cover"
+        />
+        {formArea}
+      </View>
+    )
+  }
+
   return (
     <ImageBackground source={require('../../assets/login-background.jpeg')} style={styles.container} resizeMode="cover">
-      <KeyboardAvoidingView
-        style={[styles.container, { backgroundColor: 'transparent' }]}
-        behavior="padding"
-      >
-        {isNative ? (
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            {formContent}
-          </TouchableWithoutFeedback>
-        ) : formContent}
-      </KeyboardAvoidingView>
+      {formArea}
     </ImageBackground>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  bgPortrait: { width: '100%', aspectRatio: 1.5 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   card: { padding: 32, borderRadius: 20 },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 4 },
