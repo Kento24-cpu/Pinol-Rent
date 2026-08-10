@@ -198,12 +198,17 @@ export default function LoginScreen() {
   if (portrait) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <ImageBackground
-          source={require('../../assets/login-background.jpeg')}
-          style={styles.bgPortrait}
-          resizeMode="cover"
-        />
-        {formArea}
+        <View style={styles.band}>
+          <ImageBackground
+            source={require('../../assets/login-background.jpeg')}
+            style={styles.bandImage}
+            resizeMode="cover"
+          />
+          <View style={styles.bandScrim} />
+        </View>
+        <View style={[styles.container, { marginTop: -windowHeight * 0.5 }]}>
+          {formArea}
+        </View>
       </View>
     )
   }
@@ -217,7 +222,9 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  bgPortrait: { width: '100%', aspectRatio: 1.5 },
+  band: { height: '55%' },
+  bandImage: { flex: 1 },
+  bandScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   card: { padding: 32, borderRadius: 20 },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 4 },
