@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ImageBackground, useWindowDimensions } from 'react-native'
+import { ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ImageBackground } from 'react-native'
 import { Text, TextInput, Button, Surface, Dialog, Portal, Snackbar, useTheme } from 'react-native-paper'
 import { Link, router, useLocalSearchParams } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
@@ -17,8 +17,6 @@ type LoginForm = z.infer<typeof schema>
 
 export default function LoginScreen() {
   const { colors } = useTheme()
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions()
-  const portrait = windowHeight > windowWidth
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
   const session = useAuthStore((s) => s.session)
   const role = useAuthStore((s) => s.role)
@@ -195,24 +193,6 @@ export default function LoginScreen() {
     </KeyboardAvoidingView>
   )
 
-  if (portrait) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.band}>
-          <ImageBackground
-            source={require('../../assets/login-background.jpeg')}
-            style={styles.bandImage}
-            resizeMode="cover"
-          />
-          <View style={styles.bandScrim} />
-        </View>
-        <View style={[styles.container, { marginTop: -windowHeight * 0.5 }]}>
-          {formArea}
-        </View>
-      </View>
-    )
-  }
-
   return (
     <ImageBackground source={require('../../assets/login-background.jpeg')} style={styles.container} resizeMode="cover">
       {formArea}
@@ -222,9 +202,6 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  band: { height: '55%' },
-  bandImage: { flex: 1 },
-  bandScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   card: { padding: 32, borderRadius: 20 },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 4 },
