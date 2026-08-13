@@ -23,6 +23,9 @@ interface ProfileData {
   phone: string
   cedula: string
   avatarUrl: string
+  bankName: string | null
+  bankAccountNumber: string | null
+  bankAccountHolder: string | null
 }
 
 export function ProfileScreen({ isOwner }: ProfileScreenProps) {
@@ -44,18 +47,21 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
     businessAddress: z.string().optional(),
     phone: z.string().min(6, 'Teléfono inválido'),
     cedula: z.string().min(5, 'Cédula inválida'),
+    bankName: z.string().optional(),
+    bankAccountNumber: z.string().optional(),
+    bankAccountHolder: z.string().optional(),
   })
 
   type ProfileForm = z.infer<typeof schema>
 
   const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
     resolver: zodResolver(schema),
-    defaultValues: { fullName: '', businessName: '', businessAddress: '', phone: '', cedula: '' },
+    defaultValues: { fullName: '', businessName: '', businessAddress: '', phone: '', cedula: '', bankName: '', bankAccountNumber: '', bankAccountHolder: '' },
   })
 
   useEffect(() => {
     if (!user) return
-    supabase.from('profiles').select('full_name, business_name, business_address, phone, cedula, avatar_url').eq('id', user.id).single()
+    supabase.from('profiles').select('full_name, business_name, business_address, phone, cedula, avatar_url, bank_name, bank_account_number, bank_account_holder').eq('id', user.id).single()
       .then((res) => {
         const data = res.data as {
           full_name: string | null
@@ -64,6 +70,9 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
           phone: string | null
           cedula: string | null
           avatar_url: string | null
+          bank_name: string | null
+          bank_account_number: string | null
+          bank_account_holder: string | null
         } | null
         if (data) {
           const p: ProfileData = {
@@ -73,10 +82,13 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
             phone: data.phone ?? '',
             cedula: data.cedula ?? '',
             avatarUrl: data.avatar_url ?? '',
+            bankName: data.bank_name,
+            bankAccountNumber: data.bank_account_number,
+            bankAccountHolder: data.bank_account_holder,
           }
           setProfile(p)
           setAvatarUrl(p.avatarUrl)
-          reset({ fullName: p.fullName ?? '', businessName: p.businessName ?? '', businessAddress: p.businessAddress ?? '', phone: p.phone, cedula: p.cedula })
+          reset({ fullName: p.fullName ?? '', businessName: p.businessName ?? '', businessAddress: p.businessAddress ?? '', phone: p.phone, cedula: p.cedula, bankName: p.bankName ?? '', bankAccountNumber: p.bankAccountNumber ?? '', bankAccountHolder: p.bankAccountHolder ?? '' })
         }
         setLoading(false)
       }, () => setLoading(false))
@@ -139,6 +151,9 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
     if (isOwner) {
       update.business_name = form.businessName || null
       update.business_address = form.businessAddress || null
+      update.bank_name = form.bankName || null
+      update.bank_account_number = form.bankAccountNumber || null
+      update.bank_account_holder = form.bankAccountHolder || null
     } else {
       update.full_name = form.fullName || null
     }
@@ -167,6 +182,9 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
         phone: form.phone ?? '',
         cedula: form.cedula ?? '',
         avatarUrl,
+        bankName: isOwner ? (form.bankName ?? null) : null,
+        bankAccountNumber: isOwner ? (form.bankAccountNumber ?? null) : null,
+        bankAccountHolder: isOwner ? (form.bankAccountHolder ?? null) : null,
       })
       setEditing(false)
       setSnackbar({ visible: true, message: 'Perfil actualizado' })
@@ -176,7 +194,7 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
   const startEditing = () => {
     if (profile) {
       setAvatarUrl(profile.avatarUrl)
-      reset({ fullName: profile.fullName ?? '', businessName: profile.businessName ?? '', businessAddress: profile.businessAddress ?? '', phone: profile.phone, cedula: profile.cedula })
+      reset({ fullName: profile.fullName ?? '', businessName: profile.businessName ?? '', businessAddress: profile.businessAddress ?? '', phone: profile.phone, cedula: profile.cedula, bankName: profile.bankName ?? '', bankAccountNumber: profile.bankAccountNumber ?? '', bankAccountHolder: profile.bankAccountHolder ?? '' })
     }
     setEditing(true)
   }
@@ -184,7 +202,7 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
   const cancelEditing = () => {
     if (profile) {
       setAvatarUrl(profile.avatarUrl)
-      reset({ fullName: profile.fullName ?? '', businessName: profile.businessName ?? '', businessAddress: profile.businessAddress ?? '', phone: profile.phone, cedula: profile.cedula })
+      reset({ fullName: profile.fullName ?? '', businessName: profile.businessName ?? '', businessAddress: profile.businessAddress ?? '', phone: profile.phone, cedula: profile.cedula, bankName: profile.bankName ?? '', bankAccountNumber: profile.bankAccountNumber ?? '', bankAccountHolder: profile.bankAccountHolder ?? '' })
     }
     setEditing(false)
   }
@@ -261,6 +279,23 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Teléfono</Text>
             <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.phone || '-'}</Text>
           </View>
+
+          {isOwner && (
+            <>
+              <View style={styles.fieldRow}>
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Banco</Text>
+                <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.bankName || '-'}</Text>
+              </View>
+              <View style={styles.fieldRow}>
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Número de cuenta</Text>
+                <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.bankAccountNumber || '-'}</Text>
+              </View>
+              <View style={styles.fieldRow}>
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Titular de la cuenta</Text>
+                <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.bankAccountHolder || '-'}</Text>
+              </View>
+            </>
+          )}
 
           <Button mode="contained" icon="pencil" onPress={startEditing} style={styles.button} contentStyle={styles.buttonContent}>
             Editar perfil
@@ -364,6 +399,37 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
         />
         {errors.phone ? <Text style={[styles.fieldError, { color: colors.error }]}>{errors.phone.message}</Text> : null}
 
+        {isOwner && (
+          <>
+            <Text variant="bodyMedium" style={styles.bankSectionLabel}>Cuenta bancaria para recibir depósitos en efectivo</Text>
+            <Controller
+              control={control}
+              name="bankName"
+              render={({ field: { onChange, value } }) => (
+                <TextInput label="Banco" value={value ?? ''} onChangeText={onChange}
+                  mode="outlined" style={styles.input} disabled={isSubmitting} />
+              )}
+            />
+            <Controller
+              control={control}
+              name="bankAccountNumber"
+              render={({ field: { onChange, value } }) => (
+                <TextInput label="Número de cuenta" value={value ?? ''} onChangeText={onChange}
+                  mode="outlined" style={styles.input} disabled={isSubmitting}
+                  keyboardType="number-pad" />
+              )}
+            />
+            <Controller
+              control={control}
+              name="bankAccountHolder"
+              render={({ field: { onChange, value } }) => (
+                <TextInput label="Titular de la cuenta" value={value ?? ''} onChangeText={onChange}
+                  mode="outlined" style={styles.input} disabled={isSubmitting} />
+              )}
+            />
+          </>
+        )}
+
         <View style={styles.actionRow}>
           <Button mode="outlined" onPress={cancelEditing} style={styles.halfBtn} disabled={isSubmitting}>
             Cancelar
@@ -404,6 +470,7 @@ const styles = StyleSheet.create({
   fieldRow: { marginBottom: 16 },
   fieldError: { fontSize: 12, marginBottom: 10, marginLeft: 4 },
   input: { marginBottom: 12 },
+  bankSectionLabel: { fontWeight: 'bold', marginBottom: 4, marginTop: 8 },
   button: { borderRadius: 12, marginTop: 8 },
   buttonContent: { paddingVertical: 6 },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 16 },

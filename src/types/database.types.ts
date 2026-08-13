@@ -5,7 +5,7 @@ export interface CarWithRelations {
   year: number
   color: string | null
   price_per_day: number
-  deposit_per_day: number | null
+  deposit: number | null
   location: string | null
   description: string | null
   image_url: string | null
@@ -16,7 +16,7 @@ export interface CarWithRelations {
   reviews_count: number | null
   created_at: string | null
   department: { name: string } | null
-  profile: { full_name: string | null; business_name: string | null; phone: string | null; cedula: string | null } | null
+  profile: { full_name: string | null; business_name: string | null; phone: string | null; cedula: string | null; bank_name: string | null; bank_account_number: string | null; bank_account_holder: string | null } | null
   car_tags: { tag: { name: string; slug: string } }[]
 }
 
@@ -46,9 +46,11 @@ export interface BookingWithRelations {
   renter_service_fee: number | null
   owner_commission: number | null
   owner_net_total: number | null
+  payment_method: string
+  cash_payment_deadline: string | null
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'pending_payment'
   created_at: string | null
-  car: { brand: string; model: string; image_url: string | null; price_per_day: number } | null
+  car: { brand: string; model: string; image_url: string | null; price_per_day: number; deposit?: number | null } | null
   renter: { full_name: string; avatar_url: string | null } | null
   owner?: { full_name: string | null; avatar_url: string | null } | null
 }

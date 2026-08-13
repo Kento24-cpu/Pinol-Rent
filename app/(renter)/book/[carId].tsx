@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
-import { Text, Button, Surface, Snackbar, useTheme, TextInput } from 'react-native-paper'
+import { View, ScrollView, StyleSheet, ActivityIndicator, Linking } from 'react-native'
+import { Text, Button, Surface, Snackbar, useTheme, TextInput, SegmentedButtons } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../../src/lib/supabase'
@@ -9,6 +9,22 @@ import { useBookings } from '../../../src/hooks/useBookings'
 import { usePaymentIntents } from '../../../src/hooks/usePaymentIntents'
 import { DateRangePicker } from '../../../src/components/DateRangePicker'
 import { RENTER_FEE, renterTotalPrice, renterFeeAmount } from '../../../src/lib/commission'
+import { waMeUrl } from '../../../src/lib/whatsapp'
+
+interface CarForBooking {
+  brand: string
+  model: string
+  price_per_day: number
+  deposit: number | null
+  owner_id: string
+}
+
+interface OwnerBankInfo {
+  phone: string | null
+  bank_name: string | null
+  bank_account_number: string | null
+  bank_account_holder: string | null
+}
 
 export default function BookCarScreen() {
   const { carId: carIdParam, existingBookingId } = useLocalSearchParams<{ carId: string; existingBookingId?: string }>()
@@ -17,16 +33,20 @@ export default function BookCarScreen() {
   const user = useAuthStore((s) => s.session?.user)
   const { createBooking, checkAvailability } = useBookings()
   const { submitCardPayment } = usePaymentIntents()
-  const [car, setCar] = useState<{ brand: string; model: string; price_per_day: number; deposit_per_day: number | null } | null>(null)
+  const [car, setCar] = useState<CarForBooking | null>(null)
+  const [ownerBank, setOwnerBank] = useState<OwnerBankInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
   const [showPayment, setShowPayment] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | null>(null)
   const [bookingId, setBookingId] = useState<number | null>(null)
   const [totalPrice, setTotalPrice] = useState(0)
   const [unitPrice, setUnitPrice] = useState(0)
   const [days, setDays] = useState(0)
+  const [bookingStart, setBookingStart] = useState('')
+  const [bookingEnd, setBookingEnd] = useState('')
   const [cardNumber, setCardNumber] = useState('')
   const [cardHolder, setCardHolder] = useState('')
   const [expiry, setExpiry] = useState('')
@@ -35,6 +55,19 @@ export default function BookCarScreen() {
   const [disabledDates, setDisabledDates] = useState<string[]>([])
 
   const carId = Number(carIdParam)
+
+  const loadOwnerBank = useCallback(async (ownerId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('phone, bank_name, bank_account_number, bank_account_holder')
+      .eq('id', ownerId)
+      .single()
+    if (data) {
+      setOwnerBank(data as unknown as OwnerBankInfo)
+    } else {
+      setOwnerBank(null)
+    }
+  }, [])
 
   useEffect(() => {
     if (!carId || isNaN(carId)) return
@@ -62,7 +95,7 @@ export default function BookCarScreen() {
     if (!carId || isNaN(carId)) { setFetchError(true); setLoading(false); return }
     supabase
       .from('cars')
-      .select('brand, model, price_per_day, deposit_per_day')
+      .select('brand, model, price_per_day, deposit, owner_id')
       .eq('id', carId)
       .single()
       .then(async ({ data }) => {
@@ -73,7 +106,7 @@ export default function BookCarScreen() {
             if (isNaN(id)) { setFetchError(true); setLoading(false); return }
             const { data: booking } = await supabase
               .from('bookings')
-              .select('id, start_date, end_date, total_price, unit_price, status')
+              .select('id, start_date, end_date, total_price, unit_price, status, payment_method')
               .eq('id', id)
               .single()
             if (!booking || booking.status !== 'pending_payment') {
@@ -87,6 +120,12 @@ export default function BookCarScreen() {
             setTotalPrice(booking.total_price)
             setUnitPrice(booking.unit_price ?? data.price_per_day)
             setDays(dayCount)
+            setBookingStart(booking.start_date)
+            setBookingEnd(booking.end_date)
+            setPaymentMethod(booking.payment_method === 'cash' ? 'cash' : 'card')
+            if (booking.payment_method === 'cash') {
+              await loadOwnerBank(data.owner_id)
+            }
             setShowPayment(true)
           }
         } else {
@@ -94,7 +133,7 @@ export default function BookCarScreen() {
         }
         setLoading(false)
       })
-  }, [carId, existingBookingId])
+  }, [carId, existingBookingId, loadOwnerBank])
 
   const handleSelectDates = useCallback(async (startDate: string, endDate: string, daysCount: number) => {
     if (!user) {
@@ -114,11 +153,36 @@ export default function BookCarScreen() {
       setTotalPrice(feeIncludedTotal)
       setUnitPrice(baseUnitPrice)
       setDays(daysCount)
+      setBookingStart(startDate)
+      setBookingEnd(endDate)
+      setPaymentMethod(null)
       setShowPayment(true)
     } catch (e) {
       setSnackbar({ visible: true, message: (e as Error).message })
     }
   }, [user, carId, car, createBooking, checkAvailability])
+
+  const handleSelectPaymentMethod = async (method: 'card' | 'cash') => {
+    if (!bookingId) return
+    try {
+      await supabase.from('bookings').update({ payment_method: method }).eq('id', bookingId)
+      setPaymentMethod(method)
+      if (method === 'cash' && car?.owner_id) {
+        await loadOwnerBank(car.owner_id)
+      }
+    } catch (e) {
+      setSnackbar({ visible: true, message: (e as Error).message })
+    }
+  }
+
+  const handleWhatsApp = async () => {
+    if (!bookingId || !car || !ownerBank?.phone) return
+    const deposit = car.deposit ?? 0
+    const totalToDeposit = totalPrice + deposit
+    const renterName = (user?.user_metadata?.full_name as string | undefined) ?? 'Cliente'
+    const message = `Hola, soy ${renterName}. Acabo de depositar $${totalToDeposit.toLocaleString()} por la reserva #${bookingId} del ${car.brand} ${car.model} (${bookingStart} al ${bookingEnd}). Te adjunto el comprobante. ¡Gracias!`
+    await Linking.openURL(waMeUrl(ownerBank.phone, message))
+  }
 
   const handlePayment = async () => {
     if (!bookingId) return
@@ -168,11 +232,11 @@ export default function BookCarScreen() {
             <Text variant="titleMedium" style={[styles.price, { color: colors.primary }]}>
               ${car?.price_per_day} / día
             </Text>
-            {car?.deposit_per_day && (
+            {car?.deposit ? (
               <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 2 }}>
-                Depósito: ${car.deposit_per_day}/día
+                Depósito: ${car.deposit} por reserva
               </Text>
-            )}
+            ) : null}
             <View style={styles.feeSummary}>
               <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
                 ${unitPrice} × {days} día{days > 1 ? 's' : ''} = ${(unitPrice * days).toLocaleString()}
@@ -184,51 +248,130 @@ export default function BookCarScreen() {
                 Total: ${totalPrice.toLocaleString()}
               </Text>
             </View>
-            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
-              Datos de pago
-            </Text>
           </Surface>
 
-          <Surface style={[styles.cardForm, { backgroundColor: colors.surface }]} elevation={1}>
-            <TextInput
-              label="Número de tarjeta"
-              value={cardNumber}
-              onChangeText={(t) => setCardNumber(t.replace(/[^\d\s]/g, '').slice(0, 19))}
-              mode="outlined"
-              keyboardType="numeric"
-              style={styles.input}
-              disabled={submittingPayment}
-            />
-            <TextInput
-              label="Titular de la tarjeta"
-              value={cardHolder}
-              onChangeText={setCardHolder}
-              mode="outlined"
-              style={styles.input}
-              disabled={submittingPayment}
-            />
-            <View style={styles.cardRow}>
+          {!paymentMethod && (
+            <Surface style={[styles.cardForm, { backgroundColor: colors.surface }]} elevation={1}>
+              <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 12, color: colors.onSurfaceVariant }}>
+                ¿Cómo deseas pagar?
+              </Text>
+              <SegmentedButtons
+                value=""
+                onValueChange={(v) => handleSelectPaymentMethod(v as 'card' | 'cash')}
+                buttons={[
+                  { value: 'card', label: 'Tarjeta', icon: 'credit-card' },
+                  { value: 'cash', label: 'Efectivo', icon: 'bank' },
+                ]}
+              />
+              <Text variant="bodySmall" style={{ textAlign: 'center', marginTop: 12, color: colors.onSurfaceVariant }}>
+                Con efectivo depositarás a la cuenta bancaria del arrendador y le enviarás el comprobante por WhatsApp.
+              </Text>
+            </Surface>
+          )}
+
+          {paymentMethod === 'card' && (
+            <Surface style={[styles.cardForm, { backgroundColor: colors.surface }]} elevation={1}>
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginBottom: 12 }}>
+                Datos de pago
+              </Text>
               <TextInput
-                label="Vencimiento (MM/AA)"
-                value={expiry}
-                onChangeText={(t) => setExpiry(t.replace(/[^\d/]/g, '').slice(0, 5))}
+                label="Número de tarjeta"
+                value={cardNumber}
+                onChangeText={(t) => setCardNumber(t.replace(/[^\d\s]/g, '').slice(0, 19))}
                 mode="outlined"
                 keyboardType="numeric"
-                style={[styles.input, styles.halfInput]}
+                style={styles.input}
                 disabled={submittingPayment}
               />
-            </View>
+              <TextInput
+                label="Titular de la tarjeta"
+                value={cardHolder}
+                onChangeText={setCardHolder}
+                mode="outlined"
+                style={styles.input}
+                disabled={submittingPayment}
+              />
+              <View style={styles.cardRow}>
+                <TextInput
+                  label="Vencimiento (MM/AA)"
+                  value={expiry}
+                  onChangeText={(t) => setExpiry(t.replace(/[^\d/]/g, '').slice(0, 5))}
+                  mode="outlined"
+                  keyboardType="numeric"
+                  style={[styles.input, styles.halfInput]}
+                  disabled={submittingPayment}
+                />
+              </View>
 
-            <Button
-              mode="contained"
-              onPress={handlePayment}
-              loading={submittingPayment}
-              disabled={submittingPayment}
-              style={styles.button}
-            >
-              Pagar ${totalPrice.toLocaleString()} ({days} días)
-            </Button>
-          </Surface>
+              <Button
+                mode="contained"
+                onPress={handlePayment}
+                loading={submittingPayment}
+                disabled={submittingPayment}
+                style={styles.button}
+              >
+                Pagar ${totalPrice.toLocaleString()} ({days} días)
+              </Button>
+              <Button mode="text" onPress={() => setPaymentMethod(null)} compact style={{ marginTop: 4 }}>
+                Cambiar método de pago
+              </Button>
+            </Surface>
+          )}
+
+          {paymentMethod === 'cash' && (
+            <Surface style={[styles.cardForm, { backgroundColor: colors.surface }]} elevation={1}>
+              <Text variant="bodyMedium" style={{ fontWeight: 'bold', marginBottom: 8 }}>
+                Pago en efectivo
+              </Text>
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginBottom: 12 }}>
+                Deposita el monto total a la cuenta del arrendador y envíale el comprobante por WhatsApp para que confirme tu reserva.
+              </Text>
+              <View style={styles.feeSummary}>
+                <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+                  Alquiler: ${totalPrice.toLocaleString()}
+                </Text>
+                {car?.deposit ? (
+                  <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+                    Depósito por reserva: ${car.deposit.toLocaleString()}
+                  </Text>
+                ) : null}
+                <Text variant="titleMedium" style={[styles.totalLabel, { color: colors.onSurface }]}>
+                  Total a depositar: ${(totalPrice + (car?.deposit ?? 0)).toLocaleString()}
+                </Text>
+              </View>
+
+              {ownerBank?.bank_name || ownerBank?.bank_account_number ? (
+                <View style={[styles.bankBox, { backgroundColor: colors.surfaceVariant }]}>
+                  {ownerBank.bank_name ? (
+                    <Text variant="bodyMedium" style={{ color: colors.onSurface }}>Banco: {ownerBank.bank_name}</Text>
+                  ) : null}
+                  {ownerBank.bank_account_number ? (
+                    <Text variant="bodyMedium" style={{ color: colors.onSurface }}>Número de cuenta: {ownerBank.bank_account_number}</Text>
+                  ) : null}
+                  {ownerBank.bank_account_holder ? (
+                    <Text variant="bodyMedium" style={{ color: colors.onSurface }}>Titular: {ownerBank.bank_account_holder}</Text>
+                  ) : null}
+                </View>
+              ) : (
+                <Text variant="bodyMedium" style={{ color: colors.error, marginBottom: 8 }}>
+                  El arrendador aún no configura su cuenta bancaria. Contáctalo por chat para coordinar el pago.
+                </Text>
+              )}
+
+              <Button
+                mode="contained"
+                icon="whatsapp"
+                onPress={handleWhatsApp}
+                disabled={!ownerBank?.phone}
+                style={styles.button}
+              >
+                Enviar comprobante por WhatsApp
+              </Button>
+              <Button mode="text" onPress={() => setPaymentMethod(null)} compact style={{ marginTop: 4 }}>
+                Cambiar método de pago
+              </Button>
+            </Surface>
+          )}
         </View>
 
         <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
@@ -277,4 +420,5 @@ const styles = StyleSheet.create({
   button: { borderRadius: 12, marginTop: 8 },
   feeSummary: { marginTop: 12, alignItems: 'center', gap: 2 },
   totalLabel: { fontWeight: 'bold', marginTop: 4 },
+  bankBox: { borderRadius: 12, padding: 12, marginTop: 12, gap: 4 },
 })

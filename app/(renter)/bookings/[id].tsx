@@ -167,7 +167,15 @@ export default function RenterBookingDetailScreen() {
       {booking.status === 'pending_payment' && (
         <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>
           <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 12, color: colors.onSurfaceVariant }}>
-            {paymentDeadline ? (
+            {booking.payment_method === 'cash' ? (
+              <>
+                Deposita el monto total a la cuenta del arrendador y envíale el comprobante por{' '}
+                <Text variant="bodyMedium" style={{ fontWeight: 'bold', color: colors.onSurface }}>
+                  WhatsApp
+                </Text>
+                . Él confirmará tu reserva al recibir el pago.
+              </>
+            ) : paymentDeadline ? (
               <>
                 Tu pago está siendo revisado. Debes completarlo antes del{' '}
                 <Text variant="bodyMedium" style={{ fontWeight: 'bold', color: colors.onSurface }}>
@@ -186,11 +194,11 @@ export default function RenterBookingDetailScreen() {
           </Text>
           <Button
             mode="contained"
-            icon="credit-card"
+            icon={booking.payment_method === 'cash' ? 'whatsapp' : 'credit-card'}
             onPress={() => router.push(`/(renter)/book/${booking.car_id}?existingBookingId=${booking.id}`)}
             style={styles.retryBtn}
           >
-            Reintentar pago
+            {booking.payment_method === 'cash' ? 'Pagar en efectivo' : 'Reintentar pago'}
           </Button>
           <Button
             mode="outlined"

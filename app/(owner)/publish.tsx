@@ -29,7 +29,7 @@ const schema = z.object({
     (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 },
     'Precio inválido'
   ),
-  deposit_per_day: z.string().optional().refine(
+  deposit: z.string().optional().refine(
     (v) => !v || (!isNaN(parseFloat(v)) && parseFloat(v) >= 0),
     'Depósito inválido'
   ),
@@ -125,7 +125,7 @@ export default function PublishScreen() {
 
     const year = parseInt(form.year, 10)
     const price_per_day = parseFloat(form.price_per_day)
-    const deposit_per_day = form.deposit_per_day ? parseFloat(form.deposit_per_day) : null
+    const deposit = form.deposit ? parseFloat(form.deposit) : null
 
     const { error: rpcError } = await supabase.rpc('publish_car', {
       p_brand: form.brand,
@@ -133,7 +133,7 @@ export default function PublishScreen() {
       p_year: year,
       p_color: form.color || null,
       p_price_per_day: price_per_day,
-      p_deposit_per_day: deposit_per_day,
+      p_deposit: deposit,
       p_description: form.description || null,
       p_location: form.location || null,
       p_department_id: departmentId,
@@ -220,9 +220,9 @@ export default function PublishScreen() {
 
         <Controller
           control={control}
-          name="deposit_per_day"
+          name="deposit"
           render={({ field: { onChange, value } }) => (
-            <TextInput label="Depósito por día ($) (opcional)" value={value ?? ''} onChangeText={(v) => onChange(v.replace(/[^0-9.]/g, ''))}
+            <TextInput label="Depósito por reserva ($) (opcional)" value={value ?? ''} onChangeText={(v) => onChange(v.replace(/[^0-9.]/g, ''))}
               mode="outlined" style={styles.input} disabled={isSubmitting}
               keyboardType="decimal-pad" />
           )}

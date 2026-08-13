@@ -10,7 +10,7 @@ interface CarCardCar {
   model: string
   year: number
   price_per_day: number
-  deposit_per_day: number | null
+  deposit: number | null
   department_name: string
   available: boolean
   business_name: string | null
@@ -120,9 +120,9 @@ export const CarCard = memo(function CarCard({ car, onPress, role }: CarCardProp
           </Text>
         )}
 
-        {car.deposit_per_day && (
+        {car.deposit && (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginBottom: 8 }}>
-            Depósito: ${car.deposit_per_day}/día
+            Depósito: ${car.deposit} por reserva
           </Text>
         )}
 

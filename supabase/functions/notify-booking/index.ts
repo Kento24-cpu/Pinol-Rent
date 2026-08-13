@@ -15,6 +15,7 @@ interface PgNetPayload {
     end_date: string
     total_price: number
     status: string
+    payment_method: string
   }
   old_record: { status: string } | null
 }
@@ -65,7 +66,14 @@ serve(async (req) => {
   let adminTitle = ''
   let adminBody = ''
 
-  if (payload.type === 'INSERT' && payload.record.status === 'pending_payment') {
+  if (payload.type === 'INSERT' && payload.record.status === 'pending_payment' && payload.record.payment_method === 'cash') {
+    targets.push({
+      userId: car.owner_id,
+      title: 'Nuevo pago en efectivo',
+      body: `${renter?.full_name ?? 'Alguien'} reservó ${car.brand} ${car.model} y te enviará el comprobante por WhatsApp. Confirma al recibirlo.`,
+      data: { booking_id: payload.record.id, type: 'booking' },
+    })
+  } else if (payload.type === 'INSERT' && payload.record.status === 'pending_payment') {
     targets.push({
       userId: payload.record.renter_id,
       title: 'Solicitud de pago recibida',

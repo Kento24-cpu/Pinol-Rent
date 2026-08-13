@@ -14,7 +14,7 @@ export default function OwnerBookingDetailScreen() {
   const userId = useAuthStore((s) => s.session?.user?.id)
   const { id: bookingIdParam } = useLocalSearchParams<{ id: string }>()
   const { colors } = useTheme()
-  const { fetchBooking, confirmBooking, cancelBooking, completeBooking } = useBookings()
+  const { fetchBooking, confirmBooking, cancelBooking, completeBooking, confirmCashBooking } = useBookings()
   const [booking, setBooking] = useState<BookingWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
@@ -64,6 +64,18 @@ export default function OwnerBookingDetailScreen() {
       else await completeBooking(bookingId)
       setBooking((prev) => prev ? { ...prev, status } : null)
       setSnackbar({ visible: true, message: 'Reserva actualizada' })
+    } catch (e) {
+      setSnackbar({ visible: true, message: (e as Error).message })
+    }
+    setUpdating(false)
+  }
+
+  const handleConfirmCash = async () => {
+    setUpdating(true)
+    try {
+      await confirmCashBooking(bookingId)
+      setBooking((prev) => prev ? { ...prev, status: 'confirmed' } : null)
+      setSnackbar({ visible: true, message: 'Pago recibido — reserva confirmada' })
     } catch (e) {
       setSnackbar({ visible: true, message: (e as Error).message })
     }
@@ -133,7 +145,27 @@ export default function OwnerBookingDetailScreen() {
 
         <View style={[styles.divider, { backgroundColor: colors.outline }]} />
 
-        {booking.unit_price ? (
+        {booking.payment_method === 'cash' ? (
+          <>
+            <Text variant="titleLarge" style={[styles.price, { color: colors.primary }]}>
+              ${booking.total_price.toLocaleString()}
+            </Text>
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+              Monto depositado por el arrendatario
+            </Text>
+            {booking.car && 'deposit' in booking.car && booking.car.deposit ? (
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 4 }}>
+                + ${booking.car.deposit.toLocaleString()} de depósito por reserva (se devuelve al finalizar)
+              </Text>
+            ) : null}
+            <View style={styles.netRow}>
+              <Icon source="minus-circle" size={16} color={colors.onSurfaceVariant} />
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginLeft: 6 }}>
+                -{OWNER_COMMISSION * 100}% comisión (${(booking.owner_commission ?? 0).toLocaleString()}) — informe
+              </Text>
+            </View>
+          </>
+        ) : booking.unit_price ? (
           <>
             <View style={styles.netRow}>
               <Icon source="minus-circle" size={16} color={colors.onSurfaceVariant} />
@@ -155,7 +187,38 @@ export default function OwnerBookingDetailScreen() {
         )}
       </Surface>
 
-      {booking.status === 'pending_payment' && (
+      {booking.status === 'pending_payment' && booking.payment_method === 'cash' && (
+        <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>
+          <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 12, color: colors.onSurfaceVariant }}>
+            El arrendatario está realizando el depósito a tu cuenta. Al recibir el comprobante por WhatsApp, confirma el pago para aceptar la reserva.
+          </Text>
+          <View style={styles.actionRow}>
+            <Button
+              mode="outlined"
+              icon="close"
+              textColor={colors.error}
+              onPress={() => updateStatus('cancelled')}
+              loading={updating}
+              disabled={updating}
+              style={[styles.actionBtn, { borderColor: '#C62828' }]}
+            >
+              Cancelar
+            </Button>
+            <Button
+              mode="contained"
+              icon="check"
+              onPress={handleConfirmCash}
+              loading={updating}
+              disabled={updating}
+              style={styles.actionBtn}
+            >
+              Confirmar pago recibido
+            </Button>
+          </View>
+        </Surface>
+      )}
+
+      {booking.status === 'pending_payment' && booking.payment_method !== 'cash' && (
         <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>
           <Text variant="bodyMedium" style={{ textAlign: 'center', color: colors.onSurfaceVariant }}>
             El pago del arrendatario está siendo verificado por el equipo de Pinol-Rent. Recibirás una notificación cuando sea aprobado.

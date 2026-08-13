@@ -13,6 +13,7 @@ interface CreateBookingParams {
   totalPrice: number
   unitPrice: number
   status?: 'pending_payment'
+  paymentMethod?: 'card' | 'cash'
 }
 
 export function useBookings() {
@@ -21,7 +22,7 @@ export function useBookings() {
   const [loading, setLoading] = useState(true)
   const genRef = useRef(0)
 
-  const createBooking = useCallback(async ({ carId, startDate, endDate, totalPrice, unitPrice, status }: CreateBookingParams) => {
+  const createBooking = useCallback(async ({ carId, startDate, endDate, totalPrice, unitPrice, status, paymentMethod }: CreateBookingParams) => {
     if (!user) throw new Error('Debes iniciar sesión')
 
     const { data, error } = await supabase
@@ -34,6 +35,7 @@ export function useBookings() {
         total_price: totalPrice,
         unit_price: unitPrice,
         status,
+        payment_method: paymentMethod ?? 'card',
       } satisfies Database['public']['Tables']['bookings']['Insert'])
       .select('id')
       .single()
@@ -78,6 +80,14 @@ export function useBookings() {
     await updateBookingStatus(bookingId, 'completed')
   }, [updateBookingStatus])
 
+  const confirmCashBooking = useCallback(async (bookingId: number) => {
+    const { data, error } = await supabase.rpc('confirm_cash_booking', {
+      p_booking_id: bookingId,
+    })
+    if (error) throw new Error(error.message)
+    if (!data) throw new Error('No se pudo confirmar — verifica que el pago sea en efectivo')
+  }, [])
+
   const fetchMyBookings = useCallback(async () => {
     if (!user) return
     const gen = ++genRef.current
@@ -86,7 +96,7 @@ export function useBookings() {
     try {
       const { data } = await supabase
         .from('bookings')
-        .select('*, car:car_id(brand, model, image_url, price_per_day)')
+        .select('*, car:car_id(brand, model, image_url, price_per_day, deposit)')
         .eq('renter_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -107,7 +117,7 @@ export function useBookings() {
     try {
       const { data } = await supabase
         .from('bookings')
-        .select('*, car:car_id!inner(brand, model, image_url, price_per_day, owner_id), renter:renter_id(full_name, avatar_url)')
+        .select('*, car:car_id!inner(brand, model, image_url, price_per_day, deposit, owner_id), renter:renter_id(full_name, avatar_url)')
         .eq('car.owner_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -123,7 +133,7 @@ export function useBookings() {
   const fetchBooking = useCallback(async (bookingId: number) => {
     const { data } = await supabase
       .from('bookings')
-      .select('*, car:car_id(brand, model, image_url, price_per_day), renter:renter_id(full_name, avatar_url)')
+      .select('*, car:car_id(brand, model, image_url, price_per_day, deposit), renter:renter_id(full_name, avatar_url)')
       .eq('id', bookingId)
       .single()
 
@@ -148,6 +158,7 @@ export function useBookings() {
     cancelBooking,
     confirmBooking,
     completeBooking,
+    confirmCashBooking,
     fetchMyBookings,
     fetchOwnerBookings,
     fetchBooking,

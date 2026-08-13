@@ -57,11 +57,13 @@ export type Database = {
       bookings: {
         Row: {
           car_id: number
+          cash_payment_deadline: string | null
           created_at: string | null
           end_date: string
           id: number
           owner_commission: number | null
           owner_net_total: number | null
+          payment_method: string
           renter_id: string
           renter_service_fee: number | null
           start_date: string
@@ -71,11 +73,13 @@ export type Database = {
         }
         Insert: {
           car_id: number
+          cash_payment_deadline?: string | null
           created_at?: string | null
           end_date: string
           id?: never
           owner_commission?: number | null
           owner_net_total?: number | null
+          payment_method?: string
           renter_id: string
           renter_service_fee?: number | null
           start_date: string
@@ -85,11 +89,13 @@ export type Database = {
         }
         Update: {
           car_id?: number
+          cash_payment_deadline?: string | null
           created_at?: string | null
           end_date?: string
           id?: never
           owner_commission?: number | null
           owner_net_total?: number | null
+          payment_method?: string
           renter_id?: string
           renter_service_fee?: number | null
           start_date?: string
@@ -152,7 +158,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           department_id: number | null
-          deposit_per_day: number | null
+          deposit: number | null
           description: string | null
           id: number
           image_url: string | null
@@ -170,7 +176,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           department_id?: number | null
-          deposit_per_day?: number | null
+          deposit?: number | null
           description?: string | null
           id?: never
           image_url?: string | null
@@ -188,7 +194,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           department_id?: number | null
-          deposit_per_day?: number | null
+          deposit?: number | null
           description?: string | null
           id?: never
           image_url?: string | null
@@ -471,6 +477,9 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_name: string | null
           business_address: string | null
           business_name: string | null
           cedula: string | null
@@ -482,6 +491,9 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           business_address?: string | null
           business_name?: string | null
           cedula?: string | null
@@ -493,6 +505,9 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           business_address?: string | null
           business_name?: string | null
           cedula?: string | null
@@ -618,6 +633,10 @@ export type Database = {
         Args: { p_payment_intent_id: number }
         Returns: boolean
       }
+      confirm_cash_booking: {
+        Args: { p_booking_id: number }
+        Returns: boolean
+      }
       decline_payment_intent: {
         Args: { p_payment_intent_id: number }
         Returns: boolean
@@ -632,6 +651,7 @@ export type Database = {
           created_at: string
         }[]
       }
+      expire_stale_cash_bookings: { Args: never; Returns: number }
       expire_stale_payment_intents: { Args: never; Returns: number }
       get_all_bookings: {
         Args: never
@@ -686,7 +706,7 @@ export type Database = {
           p_brand: string
           p_color?: string | null
           p_department_id: number
-          p_deposit_per_day?: number | null
+          p_deposit?: number | null
           p_description?: string | null
           p_image_url?: string | null
           p_location?: string | null
@@ -704,7 +724,7 @@ export type Database = {
           p_car_id: number
           p_color?: string | null
           p_department_id: number
-          p_deposit_per_day?: number | null
+          p_deposit?: number | null
           p_description?: string | null
           p_image_url?: string | null
           p_location?: string | null

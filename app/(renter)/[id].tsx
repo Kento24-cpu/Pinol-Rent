@@ -34,7 +34,7 @@ export default function CarDetailScreen() {
     }
     supabase
       .from('cars')
-      .select('*, deposit_per_day, department:department_id(name), profile:owner_id(full_name, business_name, phone), car_tags(tag:tag_id(name, slug))')
+      .select('*, department:department_id(name), profile:owner_id(full_name, business_name, phone), car_tags(tag:tag_id(name, slug))')
       .eq('id', carId)
       .single()
       .then(({ data, error }) => {
@@ -110,9 +110,9 @@ export default function CarDetailScreen() {
             ${renterUnitPrice(car.price_per_day)}/día — costo total
           </Text>
 
-          {car.deposit_per_day && (
+          {car.deposit && (
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 4 }}>
-              Depósito: ${car.deposit_per_day}/día
+              Depósito: ${car.deposit} por reserva
             </Text>
           )}
 

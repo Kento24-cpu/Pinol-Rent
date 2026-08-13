@@ -66,7 +66,7 @@ serve(async (req) => {
 
     const { data: booking } = await supabase
       .from('bookings')
-      .select('id, renter_id, status, total_price')
+      .select('id, renter_id, status, total_price, payment_method')
       .eq('id', booking_id)
       .single()
 
@@ -78,6 +78,9 @@ serve(async (req) => {
     }
     if (booking.status !== 'pending_payment') {
       return corsResponse('la reserva no está pendiente de pago', 409)
+    }
+    if (booking.payment_method === 'cash') {
+      return corsResponse('esta reserva se paga en efectivo', 409)
     }
 
     const { error } = await supabase
