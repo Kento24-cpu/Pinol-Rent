@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ImageBackground, useWindowDimensions } from 'react-native'
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ImageBackground } from 'react-native'
 import { Text, TextInput, Button, Surface, Dialog, Portal, Snackbar, useTheme } from 'react-native-paper'
 import { Link, router, useLocalSearchParams } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
@@ -17,8 +17,6 @@ type LoginForm = z.infer<typeof schema>
 
 export default function LoginScreen() {
   const { colors } = useTheme()
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions()
-  const portrait = windowHeight > windowWidth
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
   const session = useAuthStore((s) => s.session)
   const role = useAuthStore((s) => s.role)
@@ -54,9 +52,9 @@ export default function LoginScreen() {
 
   const isNative = Platform.OS !== 'web'
 
-  const formContent = (overlapBand = false) => (
+  const formContent = () => (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
-      <Surface style={[styles.card, overlapBand && styles.cardOverlap, { backgroundColor: colors.surface }]} elevation={2}>
+      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Text variant="headlineLarge" style={[styles.title, { color: colors.primary }]}>
           Pinol-Rent
         </Text>
@@ -182,50 +180,38 @@ export default function LoginScreen() {
       </ScrollView>
     )
 
-  const formArea = (overlapBand = false) => (
+  const formArea = () => (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: overlapBand ? colors.background : 'transparent' }]}
+      style={[styles.container, { backgroundColor: 'transparent' }]}
       behavior="padding"
     >
       {isNative ? (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          {formContent(overlapBand)}
+          {formContent()}
         </TouchableWithoutFeedback>
-      ) : formContent(overlapBand)}
+      ) : formContent()}
     </KeyboardAvoidingView>
   )
 
-  if (portrait) {
-    return (
-      <View style={styles.container}>
-        <View style={[styles.band, { height: Math.min(windowHeight * 0.4, 320) }]}>
-          <ImageBackground
-            source={require('../../assets/login-background.jpeg')}
-            style={styles.bandImage}
-            resizeMode="cover"
-          />
-          <View style={styles.bandScrim} />
-        </View>
-        {formArea(true)}
-      </View>
-    )
-  }
-
   return (
-    <ImageBackground source={require('../../assets/login-background.jpeg')} style={styles.container} resizeMode="cover">
-      {formArea(false)}
-    </ImageBackground>
+    <View style={styles.container}>
+      <ImageBackground
+        source={require('../../assets/login-background.jpeg')}
+        style={styles.bg}
+        resizeMode="cover"
+      />
+      <View style={styles.fullScrim} />
+      {formArea()}
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  band: { width: '100%' },
-  bandImage: { flex: 1 },
-  bandScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.15)' },
+  bg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
+  fullScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   card: { padding: 32, borderRadius: 20 },
-  cardOverlap: { marginTop: -40 },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 4 },
   subtitle: { textAlign: 'center', marginBottom: 32 },
   input: { marginBottom: 4 },
