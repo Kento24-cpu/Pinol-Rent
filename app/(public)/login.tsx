@@ -56,7 +56,7 @@ export default function LoginScreen() {
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
       <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Text variant="headlineLarge" style={[styles.title, { color: colors.primary }]}>
-          Pinol-Rent
+          Pinol Rent
         </Text>
         <Text variant="bodyLarge" style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
           Inicia sesión para continuar
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   bg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   fullScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  card: { padding: 32, borderRadius: 20 },
+  card: { padding: 32, borderRadius: 20, maxWidth: 480, alignSelf: 'center', width: '100%' },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 4 },
   subtitle: { textAlign: 'center', marginBottom: 32 },
   input: { marginBottom: 4 },

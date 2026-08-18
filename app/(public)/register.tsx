@@ -1,6 +1,6 @@
-import { ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native'
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { useEffect } from 'react'
-import { Text, TextInput, Button, Surface, SegmentedButtons, useTheme } from 'react-native-paper'
+import { Text, TextInput, Button, SegmentedButtons, useTheme } from 'react-native-paper'
 import { Link } from 'expo-router'
 import { useForm, useWatch, Controller } from 'react-hook-form'
 import { z } from 'zod'
@@ -103,7 +103,7 @@ export default function RegisterScreen() {
 
   const formContent = (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
-      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
+      <View style={styles.content}>
         <Text variant="headlineMedium" style={[styles.title, { color: colors.primary }]}>
           Crear cuenta
         </Text>
@@ -317,7 +317,7 @@ export default function RegisterScreen() {
             ¿Ya tienes cuenta? Inicia sesión
           </Text>
         </Link>
-      </Surface>
+      </View>
     </ScrollView>
   )
 
@@ -338,7 +338,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  card: { padding: 28, borderRadius: 20 },
+  content: { maxWidth: 480, alignSelf: 'center', width: '100%' },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 20 },
   input: { marginBottom: 4 },
   fieldError: { fontSize: 12, marginBottom: 10, marginLeft: 4 },
