@@ -8,7 +8,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.pinolrent",
+      "bundleIdentifier": "com.pinolrent.app",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
@@ -23,7 +23,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.pinolrent"
+      "package": "com.pinolrent.app"
     },
     "scheme": "pinol-rent",
     "web": {

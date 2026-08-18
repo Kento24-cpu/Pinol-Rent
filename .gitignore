@@ -40,3 +40,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# AI tools
+.commandcode/
+.codegraph/
+.claude/
+CLAUDE.md
+AGENTS.md
