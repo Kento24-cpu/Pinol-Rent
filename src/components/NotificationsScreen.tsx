@@ -74,7 +74,7 @@ export function NotificationsScreen() {
           <View style={styles.rowText}>
             <Text variant="bodyMedium" style={{ fontWeight: 'bold' }}>Promociones</Text>
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-              Ofertas y novedades de Pinol-Rent
+              Ofertas y novedades de Pinol Rent
             </Text>
           </View>
           <Switch value={prefs.marketing} onValueChange={async (v) => {

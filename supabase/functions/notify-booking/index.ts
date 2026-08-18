@@ -115,7 +115,7 @@ serve(async (req) => {
       targets.push({
         userId: payload.record.renter_id,
         title: 'Solicitud de pago cerrada',
-        body: `Tu solicitud de pago para ${car.brand} ${car.model} fue cancelada o expiró. Si tienes dudas, contacta al equipo de Pinol-Rent.`,
+        body: `Tu solicitud de pago para ${car.brand} ${car.model} fue cancelada o expiró. Si tienes dudas, contacta al equipo de Pinol Rent.`,
         data: { booking_id: payload.record.id, type: 'booking' },
       })
     } else {

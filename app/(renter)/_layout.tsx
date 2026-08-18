@@ -41,8 +41,8 @@ export default function RenterLayout() {
       <Drawer.Screen
         name="index"
         options={{
-          title: 'Pinol-Rent',
-          headerTitle: 'Pinol-Rent',
+          title: 'Pinol Rent',
+          headerTitle: 'Pinol Rent',
           drawerLabel: 'Buscar autos',
           drawerIcon: ({ color }) => <Icon source="magnify" size={22} color={color as string} />,
         }}
