@@ -46,4 +46,3 @@ yarn-error.*
 .codegraph/
 .claude/
 CLAUDE.md
-AGENTS.md
