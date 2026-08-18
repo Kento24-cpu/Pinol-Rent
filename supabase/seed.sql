@@ -1,4 +1,4 @@
--- Seed data for Pinol-Rent
+-- Seed data for Pinol Rent
 
 INSERT INTO departments (name, slug) VALUES
   ('Managua', 'managua'),

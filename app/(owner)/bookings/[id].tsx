@@ -221,7 +221,7 @@ export default function OwnerBookingDetailScreen() {
       {booking.status === 'pending_payment' && booking.payment_method !== 'cash' && (
         <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>
           <Text variant="bodyMedium" style={{ textAlign: 'center', color: colors.onSurfaceVariant }}>
-            El pago del arrendatario está siendo verificado por el equipo de Pinol-Rent. Recibirás una notificación cuando sea aprobado.
+            El pago del arrendatario está siendo verificado por el equipo de Pinol Rent. Recibirás una notificación cuando sea aprobado.
           </Text>
         </Surface>
       )}

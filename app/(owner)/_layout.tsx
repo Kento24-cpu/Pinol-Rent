@@ -40,8 +40,8 @@ export default function OwnerLayout() {
       <Drawer.Screen
         name="index"
         options={{
-          title: 'Pinol-Rent',
-          headerTitle: 'Pinol-Rent',
+          title: 'Pinol Rent',
+          headerTitle: 'Pinol Rent',
           drawerLabel: 'Mis autos',
           drawerIcon: ({ color }) => <Icon source="car-multiple" size={22} color={color as string} />,
         }}

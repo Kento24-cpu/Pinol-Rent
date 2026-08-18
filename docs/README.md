@@ -1,4 +1,4 @@
-# Pinol-Rent
+# Pinol Rent
 
 Plataforma de renta de automóviles peer-to-peer para Nicaragua. Conecta propietarios de vehículos con personas que necesitan rentar un auto.
 
