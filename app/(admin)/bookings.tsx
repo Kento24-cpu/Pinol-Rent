@@ -2,12 +2,14 @@ import { useEffect, useState, useCallback } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Chip, useTheme, Icon, Searchbar } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useResponsive } from '../../src/hooks/useResponsive'
 import { useAdminBookings } from '../../src/hooks/useAdminBookings'
 import { STATUS_COLORS, STATUS_LABELS } from '../../src/lib/bookingStatus'
 
 export default function AdminBookingsScreen() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const { columns } = useResponsive()
   const { bookings, loading, fetchAll } = useAdminBookings()
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
@@ -34,7 +36,7 @@ export default function AdminBookingsScreen() {
     const paymentStatus = item.payment_status
 
     return (
-      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={1}>
+      <Surface style={[styles.card, { backgroundColor: colors.surface, flex: columns > 1 ? 1 : undefined, margin: 8 }]} elevation={1}>
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
             <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
@@ -108,10 +110,13 @@ export default function AdminBookingsScreen() {
         </View>
       ) : (
         <FlatList
+          key={columns}
           data={filtered}
+          numColumns={columns}
           renderItem={renderItem}
           keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingHorizontal: 8 }]}
+          columnWrapperStyle={columns > 1 ? { gap: 0 } : undefined}
           refreshing={refreshing}
           onRefresh={handleRefresh}
         />
@@ -132,7 +137,7 @@ const styles = StyleSheet.create({
   },
   search: { marginHorizontal: 16, marginBottom: 8, borderRadius: 12 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  card: { margin: 16, padding: 20, borderRadius: 16, marginBottom: 0 },
+  card: { padding: 20, borderRadius: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   cardBody: { gap: 6 },
   row: { flexDirection: 'row', alignItems: 'center' },

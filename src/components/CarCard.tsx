@@ -146,7 +146,7 @@ export const CarCard = memo(function CarCard({ car, onPress, role }: CarCardProp
 })
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 16, marginVertical: 10, borderRadius: 16 },
+  card: { flex: 1, margin: 8, borderRadius: 16 },
   cover: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180 },
   coverPlaceholder: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180, justifyContent: 'center', alignItems: 'center' },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },

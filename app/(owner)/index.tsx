@@ -5,11 +5,13 @@ import { router, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuthStore } from '../../src/stores/authStore'
 import { CarCard } from '../../src/components/CarCard'
+import { useResponsive } from '../../src/hooks/useResponsive'
 import { useCars } from '../../src/hooks/useCars'
 
 export default function OwnerDashboard() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const { columns } = useResponsive()
   const user = useAuthStore((s) => s.session?.user)
   const { cars, loading, refreshing, error, fetchCars, cancel, clearError } = useCars({ ownerId: user?.id })
 
@@ -42,12 +44,15 @@ export default function OwnerDashboard() {
         </View>
       ) : (
         <FlatList
+          key={columns}
           data={cars}
+          numColumns={columns}
           renderItem={({ item }) => (
             <CarCard car={item} role="owner" onPress={(id) => router.push(`/(owner)/${id}`)} />
           )}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}
+          columnWrapperStyle={columns > 1 ? { gap: 0 } : undefined}
           refreshing={refreshing}
           onRefresh={() => fetchCars(true)}
         />
@@ -79,7 +84,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  list: { paddingBottom: 100 },
+  list: { paddingHorizontal: 8, paddingBottom: 100 },
   fab: {
     position: 'absolute',
     bottom: 24,

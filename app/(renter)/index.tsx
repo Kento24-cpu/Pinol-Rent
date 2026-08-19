@@ -8,6 +8,7 @@ import { CarCard } from '../../src/components/CarCard'
 import { DepartmentPicker } from '../../src/components/DepartmentPicker'
 import { FilterModal } from '../../src/components/FilterModal'
 import { useCars } from '../../src/hooks/useCars'
+import { useResponsive } from '../../src/hooks/useResponsive'
 import { useAuthStore } from '../../src/stores/authStore'
 import type { Tables } from '../../src/types/database'
 type Department = Tables<'departments'>
@@ -26,6 +27,7 @@ const EMPTY_FILTERS: FilterValues = { priceMin: '', priceMax: '', tagIds: [], so
 export default function RenterDashboard() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const { columns } = useResponsive()
   const session = useAuthStore((s) => s.session)
   const [rawQuery, setRawQuery] = useState('')
   const [query, setQuery] = useState('')
@@ -177,12 +179,15 @@ export default function RenterDashboard() {
         </View>
       ) : (
         <FlatList
+          key={columns}
           data={cars}
+          numColumns={columns}
           renderItem={({ item }) => (
             <CarCard car={item} role="renter" onPress={(id) => router.push(`/(renter)/${id}`)} />
           )}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}
+          columnWrapperStyle={columns > 1 ? { gap: 0 } : undefined}
           refreshing={refreshing}
           onRefresh={() => fetchCars(true)}
           onEndReached={loadMore}
@@ -226,5 +231,5 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
   activeChip: { height: 28 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  list: { paddingBottom: 32 },
+  list: { paddingHorizontal: 8, paddingBottom: 32 },
 })

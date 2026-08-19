@@ -3,11 +3,13 @@ import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Chip, useTheme, Icon } from 'react-native-paper'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useResponsive } from '../../src/hooks/useResponsive'
 import { usePaymentIntents } from '../../src/hooks/usePaymentIntents'
 
 export default function AdminDashboard() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const { columns } = useResponsive()
   const { intents, loading, fetchPending } = usePaymentIntents()
   const [refreshing, setRefreshing] = useState(false)
 
@@ -46,9 +48,11 @@ export default function AdminDashboard() {
         </View>
       ) : (
         <FlatList
+          key={columns}
           data={intents}
+          numColumns={columns}
           renderItem={({ item }) => (
-            <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={1}>
+            <Surface style={[styles.card, { backgroundColor: colors.surface, flex: columns > 1 ? 1 : undefined, margin: 8 }]} elevation={1}>
               <View style={styles.cardHeader}>
                 <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
                   {item.brand} {item.model}
@@ -88,7 +92,8 @@ export default function AdminDashboard() {
             </Surface>
           )}
           keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingHorizontal: 8 }]}
+          columnWrapperStyle={columns > 1 ? { gap: 0 } : undefined}
           refreshing={refreshing}
           onRefresh={handleRefresh}
         />
@@ -108,7 +113,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  card: { margin: 16, padding: 20, borderRadius: 16, marginBottom: 0 },
+  card: { padding: 20, borderRadius: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   chip: { backgroundColor: '#E65100' + '20' },
   chipText: { fontSize: 12, fontWeight: 'bold', color: '#E65100' },
