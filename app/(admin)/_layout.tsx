@@ -5,6 +5,7 @@ import { router } from 'expo-router'
 import { Icon, Badge, useTheme } from 'react-native-paper'
 import { useAuthStore } from '../../src/stores/authStore'
 import { useNotifications } from '../../src/hooks/useNotifications'
+import { useResponsive } from '../../src/hooks/useResponsive'
 import { AppDrawerContent } from '../../src/components/AppDrawerContent'
 import { OfflineBanner } from '../../src/components/OfflineBanner'
 
@@ -13,6 +14,7 @@ export default function AdminLayout() {
   const role = useAuthStore((s) => s.role)
   const initialized = useAuthStore((s) => s.initialized)
   const { unreadCount: notifUnread } = useNotifications({ subscribe: false })
+  const { isDesktop } = useResponsive()
 
   useEffect(() => {
     if (!initialized) return
@@ -27,6 +29,7 @@ export default function AdminLayout() {
       <Drawer
         drawerContent={(props) => <AppDrawerContent {...props} />}
         screenOptions={{
+          drawerType: isDesktop ? 'permanent' : 'front',
           drawerActiveTintColor: colors.primary,
           drawerInactiveTintColor: colors.onSurfaceVariant,
           drawerActiveBackgroundColor: colors.primaryContainer,

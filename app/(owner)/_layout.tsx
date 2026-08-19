@@ -6,6 +6,7 @@ import { Icon, Badge, useTheme } from 'react-native-paper'
 import { useAuthStore } from '../../src/stores/authStore'
 import { useChatStore } from '../../src/stores/chatStore'
 import { useNotifications } from '../../src/hooks/useNotifications'
+import { useResponsive } from '../../src/hooks/useResponsive'
 import { AppDrawerContent } from '../../src/components/AppDrawerContent'
 import { OfflineBanner } from '../../src/components/OfflineBanner'
 
@@ -15,6 +16,7 @@ export default function OwnerLayout() {
   const initialized = useAuthStore((s) => s.initialized)
   const unreadTotal = useChatStore((s) => s.unreadTotal)
   const { unreadCount: notifUnread } = useNotifications({ subscribe: false })
+  const { isDesktop } = useResponsive()
 
   useEffect(() => {
     if (!initialized) return
@@ -27,15 +29,16 @@ export default function OwnerLayout() {
       <OfflineBanner />
       <Drawer
         drawerContent={(props) => <AppDrawerContent {...props} />}
-      screenOptions={{
-        drawerActiveTintColor: colors.primary,
-        drawerInactiveTintColor: colors.onSurfaceVariant,
-        drawerActiveBackgroundColor: colors.primaryContainer,
-        drawerStyle: { backgroundColor: colors.surface, width: 280 },
-        headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.onBackground,
-        headerShadowVisible: false,
-      }}
+        screenOptions={{
+          drawerType: isDesktop ? 'permanent' : 'front',
+          drawerActiveTintColor: colors.primary,
+          drawerInactiveTintColor: colors.onSurfaceVariant,
+          drawerActiveBackgroundColor: colors.primaryContainer,
+          drawerStyle: { backgroundColor: colors.surface, width: 280 },
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.onBackground,
+          headerShadowVisible: false,
+        }}
     >
       <Drawer.Screen
         name="index"
