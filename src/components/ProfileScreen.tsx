@@ -9,6 +9,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../lib/supabase'
 import { uriToBlob } from '../lib/upload'
 import { showAlert } from '../lib/alert'
+import { useResponsive } from '../hooks/useResponsive'
+import { contentMaxWidth } from '../lib/theme'
 import { useAuthStore } from '../stores/authStore'
 import type { Database } from '../types/database'
 
@@ -30,6 +32,7 @@ interface ProfileData {
 
 export function ProfileScreen({ isOwner }: ProfileScreenProps) {
   const { colors } = useTheme()
+  const { isDesktop } = useResponsive()
   const user = useAuthStore((s) => s.session?.user)
   const session = useAuthStore((s) => s.session)
   const [loading, setLoading] = useState(true)
@@ -232,6 +235,7 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
   if (!editing) {
     return (
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.scroll}>
+        <View style={isDesktop ? styles.centeredContainer : undefined}>
         <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
           <View style={styles.avatarSection}>
             {profile?.avatarUrl && !avatarError ? (
@@ -305,12 +309,15 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
         <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
           {snackbar.message}
         </Snackbar>
+        </Surface>
+        </View>
       </ScrollView>
     )
   }
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.scroll}>
+      <View style={isDesktop ? styles.centeredContainer : undefined}>
       <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
           Editar perfil
@@ -445,12 +452,14 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
       </Snackbar>
+      </View>
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centeredContainer: { maxWidth: contentMaxWidth.form, alignSelf: 'center', width: '100%' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 16, paddingBottom: 40 },
   card: { padding: 24, borderRadius: 20 },

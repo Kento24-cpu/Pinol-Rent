@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Chip, Snackbar, useTheme, Icon } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
+import { useResponsive } from '../../../src/hooks/useResponsive'
+import { contentMaxWidth } from '../../../src/lib/theme'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { STATUS_COLORS, STATUS_LABELS } from '../../../src/lib/bookingStatus'
 import { OWNER_COMMISSION } from '../../../src/lib/commission'
@@ -14,6 +16,7 @@ export default function OwnerBookingDetailScreen() {
   const userId = useAuthStore((s) => s.session?.user?.id)
   const { id: bookingIdParam } = useLocalSearchParams<{ id: string }>()
   const { colors } = useTheme()
+  const { isDesktop } = useResponsive()
   const { fetchBooking, confirmBooking, cancelBooking, completeBooking, confirmCashBooking } = useBookings()
   const [booking, setBooking] = useState<BookingWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
@@ -110,6 +113,7 @@ export default function OwnerBookingDetailScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={isDesktop ? styles.centeredContainer : undefined}>
       <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Chip
           style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}
@@ -287,12 +291,14 @@ export default function OwnerBookingDetailScreen() {
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
       </Snackbar>
+      </View>
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centeredContainer: { maxWidth: contentMaxWidth.form, alignSelf: 'center', width: '100%' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: { margin: 16, padding: 24, borderRadius: 20 },
   actionsCard: { margin: 16, padding: 20, borderRadius: 16, marginTop: 0 },

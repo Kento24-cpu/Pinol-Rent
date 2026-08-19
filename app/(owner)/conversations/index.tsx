@@ -2,11 +2,14 @@ import { useState, useCallback } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native'
 import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge } from 'react-native-paper'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { useResponsive } from '../../../src/hooks/useResponsive'
+import { contentMaxWidth } from '../../../src/lib/theme'
 import { useConversations } from '../../../src/hooks/useConversations'
 
 export default function OwnerConversationsScreen() {
   const { carId: carIdParam } = useLocalSearchParams<{ carId?: string }>()
   const { colors } = useTheme()
+  const { isDesktop } = useResponsive()
   const { conversations, loading, refetch } = useConversations()
   const [search, setSearch] = useState('')
 
@@ -32,7 +35,7 @@ export default function OwnerConversationsScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }, isDesktop && { maxWidth: contentMaxWidth.detail, alignSelf: 'center' }]}>
       <Searchbar
         placeholder="Buscar conversaciones..."
         value={search}

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { Text, TextInput, Button, Surface, Switch, Snackbar, useTheme } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useResponsive } from '../../../src/hooks/useResponsive'
+import { contentMaxWidth } from '../../../src/lib/theme'
 import * as ImagePicker from 'expo-image-picker'
 import { router } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
@@ -42,6 +44,7 @@ type CarForm = z.infer<typeof schema>
 export default function PublishScreen() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const { isDesktop } = useResponsive()
   const user = useAuthStore((s) => s.session?.user)
   const [departments, setDepartments] = useState<Department[]>([])
   const [tags, setTags] = useState<Tag[]>([])
@@ -159,7 +162,8 @@ export default function PublishScreen() {
 
   const formContent = (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(40, insets.bottom + 16) }]}>
-      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
+      <View style={isDesktop ? styles.centeredContainer : undefined}>
+        <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
           Publicar auto
         </Text>
@@ -304,7 +308,8 @@ export default function PublishScreen() {
         >
           {snackbar.message}
         </Snackbar>
-      </Surface>
+        </Surface>
+      </View>
     </ScrollView>
   )
 
@@ -324,6 +329,7 @@ export default function PublishScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centeredContainer: { maxWidth: contentMaxWidth.form, alignSelf: 'center', width: '100%' },
   scroll: { padding: 16, paddingBottom: 40 },
   card: { padding: 24, borderRadius: 20 },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 24 },

@@ -3,6 +3,8 @@ import { View, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacit
 import { Text, Button, Surface, Chip, Icon, Snackbar, useTheme } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useResponsive } from '../../src/hooks/useResponsive'
+import { contentMaxWidth } from '../../src/lib/theme'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { findOrCreateConversation } from '../../src/lib/chat'
@@ -16,6 +18,7 @@ export default function CarDetailScreen() {
   const { colors } = useTheme()
   const [imageError, setImageError] = useState(false)
   const insets = useSafeAreaInsets()
+  const { isDesktop } = useResponsive()
   const userId = useAuthStore((s) => s.session?.user?.id)
   const { reviews, fetchCarReviews } = useReviews()
   const [car, setCar] = useState<CarWithRelations | null>(null)
@@ -72,6 +75,7 @@ export default function CarDetailScreen() {
         <Icon source="arrow-left" size={24} color={colors.surface} />
       </TouchableOpacity>
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={isDesktop ? styles.centeredContainer : undefined}>
         {car.image_url && !imageError ? (
           <Image source={{ uri: car.image_url }} style={styles.image} resizeMode="cover" onError={() => setImageError(true)} />
         ) : (
@@ -231,6 +235,7 @@ export default function CarDetailScreen() {
           </>
         )}
       </Surface>
+      </View>
       </ScrollView>
 
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
@@ -242,6 +247,7 @@ export default function CarDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centeredContainer: { maxWidth: contentMaxWidth.detail, alignSelf: 'center', width: '100%' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backButton: { position: 'absolute', left: 16, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20, padding: 8 },
   imagePlaceholder: {

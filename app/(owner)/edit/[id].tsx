@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { Text, TextInput, Button, Surface, Switch, Snackbar, useTheme } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useResponsive } from '../../../src/hooks/useResponsive'
+import { contentMaxWidth } from '../../../src/lib/theme'
 import * as ImagePicker from 'expo-image-picker'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
@@ -44,6 +46,7 @@ export default function EditCarScreen() {
   const { id } = useLocalSearchParams()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const { isDesktop } = useResponsive()
   const user = useAuthStore((s) => s.session?.user)
   const [departments, setDepartments] = useState<Department[]>([])
   const [tags, setTags] = useState<Tag[]>([])
@@ -200,7 +203,8 @@ export default function EditCarScreen() {
 
   const formContent = (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(40, insets.bottom + 16) }]}>
-      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
+      <View style={isDesktop ? styles.centeredContainer : undefined}>
+        <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
           Editar auto
         </Text>
@@ -370,6 +374,7 @@ export default function EditCarScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centeredContainer: { maxWidth: contentMaxWidth.form, alignSelf: 'center', width: '100%' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 16, paddingBottom: 40 },
   card: { padding: 24, borderRadius: 20 },

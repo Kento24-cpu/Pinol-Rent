@@ -2,11 +2,14 @@ import { useState, useCallback } from 'react'
 import { View, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native'
 import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge, Button } from 'react-native-paper'
 import { router, useFocusEffect } from 'expo-router'
+import { useResponsive } from '../../../src/hooks/useResponsive'
+import { contentMaxWidth } from '../../../src/lib/theme'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { useConversations } from '../../../src/hooks/useConversations'
 
 export default function RenterConversationsScreen() {
   const { colors } = useTheme()
+  const { isDesktop } = useResponsive()
   const session = useAuthStore((s) => s.session)
   const { conversations, loading, refetch } = useConversations()
   const [search, setSearch] = useState('')
@@ -42,7 +45,7 @@ export default function RenterConversationsScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }, isDesktop && { maxWidth: contentMaxWidth.detail, alignSelf: 'center' }]}>
       <Searchbar
         placeholder="Buscar conversaciones..."
         value={search}
