@@ -72,3 +72,7 @@ export const darkTheme = buildTheme(MD3DarkTheme, darkPalette)
 export function getTheme(colorScheme: string | undefined | null): MD3Theme {
   return colorScheme === 'dark' ? darkTheme : lightTheme
 }
+
+export const breakpoints = { tablet: 768, desktop: 1024 } as const
+
+export const contentMaxWidth = { form: 720, detail: 840, list: 1200 } as const
