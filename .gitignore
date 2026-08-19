@@ -44,5 +44,3 @@ yarn-error.*
 # AI tools
 .commandcode/
 .codegraph/
-.claude/
-CLAUDE.md
