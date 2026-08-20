@@ -20,6 +20,7 @@ Piñol Rent — mobile car rental platform built with Expo 56 (React Native) and
 ## Code conventions
 - TypeScript strict
 - Commit format: conventional commits (`feat:`, `fix:`, `chore:`)
+- No AI agent attributions in commits (no `Co-Authored-By`, `🤖 Generated with`, or similar)
 - Spanish UI text for end users
 - English code, comments, and commit messages
 
