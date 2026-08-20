@@ -41,6 +41,5 @@ yarn-error.*
 /ios
 /android
 
-# AI tools
-.commandcode/
+# CodeGraph — knowledge graph index (cached code intelligence)
 .codegraph/
