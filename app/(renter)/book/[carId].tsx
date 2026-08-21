@@ -7,6 +7,8 @@ import { supabase } from '../../../src/lib/supabase'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { usePaymentIntents } from '../../../src/hooks/usePaymentIntents'
+import { z } from 'zod'
+import { parseRow } from '../../../src/lib/supabaseParse'
 import { ErrorSnackbar } from '../../../src/components/ErrorSnackbar'
 import { DETAIL_MAX } from '../../../src/lib/responsive'
 import { DateRangePicker } from '../../../src/components/DateRangePicker'
@@ -27,6 +29,8 @@ interface OwnerBankInfo {
   bank_account_number: string | null
   bank_account_holder: string | null
 }
+
+const ownerBankSchema = z.custom<OwnerBankInfo>((v) => typeof v === 'object' && v !== null)
 
 export default function BookCarScreen() {
   const { carId: carIdParam, existingBookingId } = useLocalSearchParams<{ carId: string; existingBookingId?: string }>()
@@ -65,7 +69,7 @@ export default function BookCarScreen() {
       .eq('id', ownerId)
       .single()
     if (data) {
-      setOwnerBank(data as unknown as OwnerBankInfo)
+      setOwnerBank(parseRow(data, ownerBankSchema))
     } else {
       setOwnerBank(null)
     }

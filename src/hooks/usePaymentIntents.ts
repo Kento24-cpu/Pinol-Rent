@@ -1,7 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { FunctionsHttpError } from '@supabase/supabase-js'
+import { z } from 'zod'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
+import { parseRows } from '../lib/supabaseParse'
 
 const FRIENDLY_FUNCTION_ERRORS: Record<string, string> = {
   'encryption key not configured': 'El servidor de pagos no está configurado. Intenta más tarde o paga en efectivo.',
@@ -59,23 +61,32 @@ interface PendingPaymentIntent {
   renter_email: string
 }
 
+const pendingPaymentIntentSchema = z.custom<PendingPaymentIntent>((v) => {
+  if (typeof v !== 'object' || v === null) return false
+  const r = v as Record<string, unknown>
+  return typeof r.id === 'number' && typeof r.booking_id === 'number' && typeof r.amount === 'number'
+})
+
 export function usePaymentIntents() {
   const user = useAuthStore((s) => s.session?.user)
   const [intents, setIntents] = useState<PendingPaymentIntent[]>([])
   const [loading, setLoading] = useState(false)
+  const genRef = useRef(0)
   const [error, setError] = useState<string | null>(null)
 
   const clearError = () => setError(null)
 
   const fetchPending = useCallback(async () => {
+    const gen = ++genRef.current
     setLoading(true)
     setError(null)
     const { data, error: fetchError } = await supabase.rpc('get_pending_payment_intents')
+    if (gen !== genRef.current) return
     if (fetchError) {
       setError(fetchError.message)
       setIntents([])
     } else {
-      setIntents((data ?? []) as unknown as PendingPaymentIntent[])
+      setIntents(parseRows(data, pendingPaymentIntentSchema))
     }
     setLoading(false)
   }, [])

@@ -2,6 +2,8 @@ import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import type { ReviewWithRelations } from '../types/database.types'
+import { parseRows, parseRow } from '../lib/supabaseParse'
+import { reviewRowSchema } from '../lib/rowSchemas'
 
 export function useReviews() {
   const user = useAuthStore((s) => s.session?.user)
@@ -23,8 +25,9 @@ export function useReviews() {
         .order('created_at', { ascending: false })
       if (gen !== genRef.current) return []
       if (fetchError) { setError(fetchError.message); return [] }
-      if (data) setReviews(data as unknown as ReviewWithRelations[])
-      return (data ?? []) as ReviewWithRelations[]
+      const parsed = parseRows(data, reviewRowSchema)
+      if (data) setReviews(parsed)
+      return parsed
     } catch (e) {
       setError((e as Error).message)
       return []
@@ -40,7 +43,7 @@ export function useReviews() {
       .eq('booking_id', bookingId)
       .single()
     if (fetchError) { setError(fetchError.message); return null }
-    return (data ?? null) as ReviewWithRelations | null
+    return data ? parseRow(data, reviewRowSchema) : null
   }, [])
 
   const createReview = useCallback(async (

@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import type { MessageWithSender } from '../types/database.types'
 import { uriToBlob, mimeToExt } from '../lib/upload'
+import { parseRows } from '../lib/supabaseParse'
+import { messageRowSchema } from '../lib/rowSchemas'
 
 async function signAttachment(m: MessageWithSender): Promise<MessageWithSender> {
   if (!m.attachment_url || m.attachment_url.startsWith('http')) return m
@@ -37,7 +39,7 @@ export function useChat(conversationId: number | null) {
     if (gen !== genRef.current) { setLoading(false); return }
     if (fetchError) { setError(fetchError.message); setLoading(false); return }
     if (data) {
-      const raw = data as unknown as MessageWithSender[]
+      const raw = parseRows(data, messageRowSchema)
       const signed = await Promise.all(raw.map(signAttachment))
       if (gen !== genRef.current) return
       setMessages(signed)

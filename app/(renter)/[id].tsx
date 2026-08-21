@@ -12,6 +12,8 @@ import { BackButton } from '../../src/components/BackButton'
 import { RENTER_FEE, renterFeeAmount, renterUnitPrice } from '../../src/lib/commission'
 import { DETAIL_MAX, useBreakpoint } from '../../src/lib/responsive'
 import type { CarWithRelations } from '../../src/types/database.types'
+import { parseRow } from '../../src/lib/supabaseParse'
+import { carRowSchema } from '../../src/lib/rowSchemas'
 
 export default function CarDetailScreen() {
   const { id } = useLocalSearchParams()
@@ -41,7 +43,7 @@ export default function CarDetailScreen() {
       .single()
       .then(({ data, error }) => {
         if (error) { setFetchError(true); setLoading(false); return }
-        if (data) setCar(data as unknown as CarWithRelations)
+        if (data) setCar(parseRow(data, carRowSchema))
         setLoading(false)
       })
     fetchCarReviews(carId)

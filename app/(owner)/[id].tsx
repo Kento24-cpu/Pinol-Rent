@@ -8,6 +8,8 @@ import { OWNER_COMMISSION, ownerNetPrice, ownerCommissionAmount } from '../../sr
 import { DETAIL_MAX, useBreakpoint } from '../../src/lib/responsive'
 import { BackButton } from '../../src/components/BackButton'
 import type { CarWithRelations } from '../../src/types/database.types'
+import { parseRow } from '../../src/lib/supabaseParse'
+import { carRowSchema } from '../../src/lib/rowSchemas'
 
 export default function OwnerCarDetailScreen() {
   const { id } = useLocalSearchParams()
@@ -35,7 +37,7 @@ export default function OwnerCarDetailScreen() {
       .single()
     if (gen !== genRef.current) return
     if (error || !data) { setFetchError(true); setLoading(false); return }
-    setCar(data as unknown as CarWithRelations)
+    setCar(parseRow(data, carRowSchema))
     setLoading(false)
   }, [carId])
 

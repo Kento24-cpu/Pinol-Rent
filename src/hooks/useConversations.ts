@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import { useChatStore } from '../stores/chatStore'
 import type { ConversationWithLatest } from '../types/database.types'
+import { parseRows } from '../lib/supabaseParse'
+import { conversationRowSchema } from '../lib/rowSchemas'
 
 export function useConversations() {
   const user = useAuthStore((s) => s.session?.user)
@@ -24,7 +26,7 @@ export function useConversations() {
         .or(`renter_id.eq.${user.id},owner_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false })
       if (gen !== genRef.current) return
-      const convs = (data ?? []) as unknown as ConversationWithLatest[]
+      const convs = parseRows(data, conversationRowSchema)
       setConversations(convs)
 
       const ids = convs.map((c) => c.id)

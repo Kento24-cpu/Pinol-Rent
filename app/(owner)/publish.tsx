@@ -5,8 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import { router } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
-import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { carFormSchema, type CarForm } from '../../src/lib/validation/carSchema'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { mimeToExt, uriToBlob } from '../../src/lib/upload'
@@ -17,28 +17,6 @@ import { DETAIL_MAX } from '../../src/lib/responsive'
 import type { Tables } from '../../src/types/database'
 type Department = Tables<'departments'>
 type Tag = Tables<'tags'>
-
-const schema = z.object({
-  brand: z.string().min(1, 'Requerido'),
-  model: z.string().min(1, 'Requerido'),
-  year: z.string().refine(
-    (v) => { const n = parseInt(v, 10); return !isNaN(n) && n >= 2000 && n <= 2030 },
-    'Año inválido (2000-2030)'
-  ),
-  color: z.string().optional(),
-  price_per_day: z.string().refine(
-    (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 },
-    'Precio inválido'
-  ),
-  deposit: z.string().optional().refine(
-    (v) => !v || (!isNaN(parseFloat(v)) && parseFloat(v) >= 0),
-    'Depósito inválido'
-  ),
-  location: z.string().optional(),
-  description: z.string().optional(),
-})
-
-type CarForm = z.infer<typeof schema>
 
 export default function PublishScreen() {
   const { colors } = useTheme()
@@ -54,7 +32,7 @@ export default function PublishScreen() {
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
   const { control, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<CarForm>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(carFormSchema),
     defaultValues: {
       brand: '', model: '', year: String(new Date().getFullYear()),
       color: '', price_per_day: '', description: '', location: '',

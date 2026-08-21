@@ -21,12 +21,14 @@ export function useNotificationPrefs() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const prefsRef = useRef(prefs)
+  const genRef = useRef(0)
   useEffect(() => { prefsRef.current = prefs }, [prefs])
 
   const clearError = () => setError(null)
 
   const fetchPrefs = useCallback(async () => {
     if (!user) return
+    const gen = ++genRef.current
     setError(null)
     try {
       const { data: existing } = await supabase
@@ -35,6 +37,7 @@ export function useNotificationPrefs() {
         .eq('user_id', user.id)
         .maybeSingle()
 
+      if (gen !== genRef.current) return
       if (existing) {
         setPrefs(existing)
       } else {
@@ -43,6 +46,7 @@ export function useNotificationPrefs() {
           .insert({ user_id: user.id, ...DEFAULTS })
           .select('chat_push, booking_push, marketing')
           .single()
+        if (gen !== genRef.current) return
         if (insertError) { setError(insertError.message); return }
         if (data) setPrefs(data)
       }
