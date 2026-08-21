@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { OWNER_COMMISSION, ownerNetPrice, ownerCommissionAmount } from '../../src/lib/commission'
+import { DETAIL_MAX } from '../../src/lib/responsive'
 import type { CarWithRelations } from '../../src/types/database.types'
 
 export default function OwnerCarDetailScreen() {
@@ -94,7 +95,10 @@ export default function OwnerCarDetailScreen() {
       <TouchableOpacity style={[styles.backButton, { top: insets.top + 8 }]} onPress={() => router.back()}>
         <Icon source="arrow-left" size={24} color={colors.surface} />
       </TouchableOpacity>
-      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={{ maxWidth: DETAIL_MAX, alignSelf: 'center', width: '100%' }}
+      >
         {car.image_url && !imageError ? (
           <Image source={{ uri: car.image_url }} style={styles.image} resizeMode="cover" onError={() => setImageError(true)} />
         ) : (

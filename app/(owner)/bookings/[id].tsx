@@ -8,6 +8,7 @@ import { OWNER_COMMISSION } from '../../../src/lib/commission'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { findOrCreateConversation } from '../../../src/lib/chat'
 import { supabase } from '../../../src/lib/supabase'
+import { DETAIL_MAX } from '../../../src/lib/responsive'
 import type { BookingWithRelations } from '../../../src/types/database.types'
 
 export default function OwnerBookingDetailScreen() {
@@ -109,7 +110,7 @@ export default function OwnerBookingDetailScreen() {
   })()
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ maxWidth: DETAIL_MAX, alignSelf: 'center', width: '100%' }}>
       <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Chip
           style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}

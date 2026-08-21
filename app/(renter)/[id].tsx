@@ -9,6 +9,7 @@ import { findOrCreateConversation } from '../../src/lib/chat'
 import { useReviews } from '../../src/hooks/useReviews'
 import { ReviewCard } from '../../src/components/ReviewCard'
 import { RENTER_FEE, renterFeeAmount, renterUnitPrice } from '../../src/lib/commission'
+import { DETAIL_MAX } from '../../src/lib/responsive'
 import type { CarWithRelations } from '../../src/types/database.types'
 
 export default function CarDetailScreen() {
@@ -71,7 +72,10 @@ export default function CarDetailScreen() {
       >
         <Icon source="arrow-left" size={24} color={colors.surface} />
       </TouchableOpacity>
-      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={{ maxWidth: DETAIL_MAX, alignSelf: 'center', width: '100%' }}
+      >
         {car.image_url && !imageError ? (
           <Image source={{ uri: car.image_url }} style={styles.image} resizeMode="cover" onError={() => setImageError(true)} />
         ) : (

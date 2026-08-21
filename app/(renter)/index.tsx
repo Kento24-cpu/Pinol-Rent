@@ -9,6 +9,8 @@ import { DepartmentPicker } from '../../src/components/DepartmentPicker'
 import { FilterModal } from '../../src/components/FilterModal'
 import { useCars } from '../../src/hooks/useCars'
 import { useAuthStore } from '../../src/stores/authStore'
+import { ScreenContainer } from '../../src/components/ScreenContainer'
+import { useColumns } from '../../src/lib/responsive'
 import type { Tables } from '../../src/types/database'
 type Department = Tables<'departments'>
 type Tag = Tables<'tags'>
@@ -46,6 +48,8 @@ export default function RenterDashboard() {
     location: filters.location || undefined,
   })
 
+  const cols = useColumns({ mobile: 1, tablet: 2, desktop: 3 })
+
   useEffect(() => {
     supabase.from('departments').select('id, name, slug').order('name').then(({ data }) => {
       if (data) setDepartments(data)
@@ -79,117 +83,129 @@ export default function RenterDashboard() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: colors.onBackground }}>
-          Buscar autos
-        </Text>
-        <View style={styles.headerActions}>
-          {session ? (
-            <Button mode="text" icon="account" onPress={() => router.push('/(renter)/profile')} compact>
-              Perfil
-            </Button>
-          ) : (
-            <>
-              <Button mode="text" onPress={() => router.push('/(public)/login')} compact>
-                Iniciar sesión
+      <ScreenContainer style={{ flex: 1 }}>
+        <View style={styles.header}>
+          <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: colors.onBackground }}>
+            Buscar autos
+          </Text>
+          <View style={styles.headerActions}>
+            {session ? (
+              <Button mode="text" icon="account" onPress={() => router.push('/(renter)/profile')} compact>
+                Perfil
               </Button>
-              <Button mode="contained" onPress={() => router.push('/(public)/register')} compact>
-                Registro
-              </Button>
-            </>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.filters}>
-        <View style={styles.searchRow}>
-          <Searchbar
-            placeholder="Buscar por marca, modelo..."
-            value={rawQuery}
-            onChangeText={onChangeText}
-            style={[styles.search, { backgroundColor: colors.surface, flex: 1 }]}
-            inputStyle={{ color: colors.onBackground }}
-          />
-          <Button
-            mode="outlined"
-            icon="tune"
-            onPress={() => setShowFilters(true)}
-            style={styles.filterBtn}
-          >
-            {activeFilterCount > 0 ? `${activeFilterCount}` : ''}
-          </Button>
+            ) : (
+              <>
+                <Button mode="text" onPress={() => router.push('/(public)/login')} compact>
+                  Iniciar sesión
+                </Button>
+                <Button mode="contained" onPress={() => router.push('/(public)/register')} compact>
+                  Registro
+                </Button>
+              </>
+            )}
+          </View>
         </View>
 
-        <View style={styles.pickerRow}>
-          <View style={styles.picker}>
-            <DepartmentPicker
-              departments={departments}
-              value={departmentId}
-              onChange={(id) => setDepartmentId(id)}
+        <View style={styles.filters}>
+          <View style={styles.searchRow}>
+            <Searchbar
+              placeholder="Buscar por marca, modelo..."
+              value={rawQuery}
+              onChangeText={onChangeText}
+              style={[styles.search, { backgroundColor: colors.surface, flex: 1 }]}
+              inputStyle={{ color: colors.onBackground }}
             />
-          </View>
-          {departmentId && (
-            <Button icon="close" onPress={() => setDepartmentId(null)} compact>
-              Quitar
+            <Button
+              mode="outlined"
+              icon="tune"
+              onPress={() => setShowFilters(true)}
+              style={styles.filterBtn}
+            >
+              {activeFilterCount > 0 ? `${activeFilterCount}` : ''}
             </Button>
-          )}
-        </View>
+          </View>
 
-        {activeFilterCount > 0 && (
-          <View style={styles.chipRow}>
-            {filters.priceMin && (
-              <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, priceMin: '' }))} compact>
-                <Text variant="labelSmall">Min ${filters.priceMin}</Text>
-              </Chip>
-            )}
-            {filters.priceMax && (
-              <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, priceMax: '' }))} compact>
-                <Text variant="labelSmall">Max ${filters.priceMax}</Text>
-              </Chip>
-            )}
-            {filters.sortBy !== 'newest' && (
-              <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, sortBy: 'newest' }))} compact>
-                <Text variant="labelSmall">{filters.sortBy === 'price_asc' ? 'Precio ↑' : 'Precio ↓'}</Text>
-              </Chip>
-            )}
-            {filters.location && (
-              <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, location: '' }))} compact>
-                <Text variant="labelSmall">{filters.location}</Text>
-              </Chip>
+          <View style={styles.pickerRow}>
+            <View style={styles.picker}>
+              <DepartmentPicker
+                departments={departments}
+                value={departmentId}
+                onChange={(id) => setDepartmentId(id)}
+              />
+            </View>
+            {departmentId && (
+              <Button icon="close" onPress={() => setDepartmentId(null)} compact>
+                Quitar
+              </Button>
             )}
           </View>
-        )}
-      </View>
 
-      {loading ? (
-        <View style={styles.center}><ActivityIndicator size="large" /></View>
-      ) : cars.length === 0 ? (
-        <View style={styles.center}>
-          <Text variant="displayMedium" style={{ marginBottom: 16 }}>🔍</Text>
-          <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant }}>
-            No se encontraron autos
-          </Text>
-          <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, textAlign: 'center', marginTop: 8 }}>
-            {query || departmentId || activeFilterCount > 0
-              ? 'Intenta con otros filtros'
-              : 'No hay autos disponibles aún'}
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={cars}
-          renderItem={({ item }) => (
-            <CarCard car={item} role="renter" onPress={(id) => router.push(`/(renter)/${id}`)} />
+          {activeFilterCount > 0 && (
+            <View style={styles.chipRow}>
+              {filters.priceMin && (
+                <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, priceMin: '' }))} compact>
+                  <Text variant="labelSmall">Min ${filters.priceMin}</Text>
+                </Chip>
+              )}
+              {filters.priceMax && (
+                <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, priceMax: '' }))} compact>
+                  <Text variant="labelSmall">Max ${filters.priceMax}</Text>
+                </Chip>
+              )}
+              {filters.sortBy !== 'newest' && (
+                <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, sortBy: 'newest' }))} compact>
+                  <Text variant="labelSmall">{filters.sortBy === 'price_asc' ? 'Precio ↑' : 'Precio ↓'}</Text>
+                </Chip>
+              )}
+              {filters.location && (
+                <Chip style={styles.activeChip} onClose={() => setFilters((f) => ({ ...f, location: '' }))} compact>
+                  <Text variant="labelSmall">{filters.location}</Text>
+                </Chip>
+              )}
+            </View>
           )}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.list}
-          refreshing={refreshing}
-          onRefresh={() => fetchCars(true)}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={loading ? <ActivityIndicator style={{ padding: 16 }} /> : null}
-        />
-      )}
+        </View>
+
+        {loading ? (
+          <View style={styles.center}><ActivityIndicator size="large" /></View>
+        ) : cars.length === 0 ? (
+          <View style={styles.center}>
+            <Text variant="displayMedium" style={{ marginBottom: 16 }}>🔍</Text>
+            <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant }}>
+              No se encontraron autos
+            </Text>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, textAlign: 'center', marginTop: 8 }}>
+              {query || departmentId || activeFilterCount > 0
+                ? 'Intenta con otros filtros'
+                : 'No hay autos disponibles aún'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={cars}
+            numColumns={cols}
+            key={cols}
+            renderItem={({ item }) =>
+              cols > 1 ? (
+                <View style={styles.gridItem}>
+                  <CarCard car={item} role="renter" grid onPress={(id) => router.push(`/(renter)/${id}`)} />
+                </View>
+              ) : (
+                <CarCard car={item} role="renter" onPress={(id) => router.push(`/(renter)/${id}`)} />
+              )
+            }
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={[styles.list, cols > 1 && styles.gridList]}
+            columnWrapperStyle={cols > 1 ? styles.gridRow : undefined}
+            style={{ flex: 1 }}
+            refreshing={refreshing}
+            onRefresh={() => fetchCars(true)}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={loading ? <ActivityIndicator style={{ padding: 16 }} /> : null}
+          />
+        )}
+      </ScreenContainer>
 
       <FilterModal
         visible={showFilters}
@@ -227,4 +243,7 @@ const styles = StyleSheet.create({
   activeChip: { height: 28 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   list: { paddingBottom: 32 },
+  gridList: { paddingHorizontal: 16 },
+  gridRow: { gap: 16 },
+  gridItem: { flex: 1, marginBottom: 16 },
 })

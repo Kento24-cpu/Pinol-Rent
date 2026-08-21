@@ -1,6 +1,48 @@
 import { useState, useCallback } from 'react'
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
+
+const FRIENDLY_FUNCTION_ERRORS: Record<string, string> = {
+  'encryption key not configured': 'El servidor de pagos no está configurado. Intenta más tarde o paga en efectivo.',
+  'server config error': 'Error de configuración del servidor. Intenta más tarde.',
+  'no autorizado': 'No autorizado',
+  'unauthorized': 'Tu sesión expiró. Vuelve a iniciar sesión.',
+  'forbidden': 'Acceso denegado',
+  'booking not found': 'Reserva no encontrada',
+  'payment intent not found': 'Solicitud de pago no encontrada',
+  'missing required fields': 'Completa todos los datos de la tarjeta',
+  'missing payment_intent_id': 'Solicitud de pago inválida',
+  'invalid body': 'No se pudo procesar la solicitud. Intenta de nuevo.',
+  'invalid card number': 'Número de tarjeta inválido',
+  'la reserva no está pendiente de pago': 'La reserva ya no está pendiente de pago',
+  'esta reserva se paga en efectivo': 'Esta reserva se paga en efectivo',
+  'ya existe un pago pendiente para esta reserva': 'Ya existe un pago pendiente para esta reserva',
+  'failed to create payment intent': 'No se pudo registrar el pago. Intenta más tarde.',
+  'internal server error': 'Error interno del servidor. Intenta más tarde.',
+}
+
+async function functionErrorMessage(error: unknown): Promise<string> {
+  if (!(error instanceof FunctionsHttpError)) return (error as Error).message
+  try {
+    const context = error.context as { text?: () => Promise<string> } | string | undefined
+    const raw = typeof context === 'string'
+      ? context
+      : typeof context?.text === 'function'
+        ? await context.text()
+        : ''
+    if (!raw) return 'El servidor rechazó el pago. Intenta más tarde.'
+    try {
+      const parsed = JSON.parse(raw) as { error?: string; message?: string }
+      const serverMessage = parsed.error ?? parsed.message ?? raw
+      return FRIENDLY_FUNCTION_ERRORS[serverMessage] ?? serverMessage
+    } catch {
+      return FRIENDLY_FUNCTION_ERRORS[raw] ?? raw
+    }
+  } catch {
+    return 'Error de conexión con el servidor de pagos'
+  }
+}
 
 interface PendingPaymentIntent {
   id: number
@@ -69,8 +111,9 @@ export function usePaymentIntents() {
       body: { payment_intent_id: paymentIntentId },
     })
     if (error) {
-      console.warn('[usePaymentIntents] decrypt-card-info error:', error.message)
-      throw new Error(error.message)
+      const message = await functionErrorMessage(error)
+      console.warn('[usePaymentIntents] decrypt-card-info error:', message)
+      throw new Error(message)
     }
     if (!data || typeof data !== 'object' || !('card_number' in data)) {
       throw new Error('Acceso denegado')
@@ -86,7 +129,7 @@ export function usePaymentIntents() {
     const { data, error } = await supabase.functions.invoke('process-payment', {
       body: { booking_id: bookingId, ...cardData },
     })
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(await functionErrorMessage(error))
     return data as { status: string; card_last_four: string }
   }, [])
 

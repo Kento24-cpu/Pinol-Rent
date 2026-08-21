@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { BookingCard } from '../../../src/components/BookingCard'
+import { ScreenContainer } from '../../../src/components/ScreenContainer'
 
 export default function RenterBookingsScreen() {
   const { colors } = useTheme()
@@ -37,26 +38,29 @@ export default function RenterBookingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <FlatList
-        data={bookings}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
-          <BookingCard booking={item} onPress={(id) => router.push(`/(renter)/bookings/${id}`)} />
-        )}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchMyBookings} />}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Icon source="calendar-remove" size={48} color={colors.onSurfaceVariant} />
-            <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
-              No tienes reservas
-            </Text>
-            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-              Explora autos disponibles para rentar
-            </Text>
-          </View>
-        }
-        contentContainerStyle={bookings.length === 0 ? styles.emptyContainer : styles.list}
-      />
+      <ScreenContainer style={{ flex: 1 }}>
+        <FlatList
+          data={bookings}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <BookingCard booking={item} onPress={(id) => router.push(`/(renter)/bookings/${id}`)} />
+          )}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchMyBookings} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Icon source="calendar-remove" size={48} color={colors.onSurfaceVariant} />
+              <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
+                No tienes reservas
+              </Text>
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+                Explora autos disponibles para rentar
+              </Text>
+            </View>
+          }
+          contentContainerStyle={bookings.length === 0 ? styles.emptyContainer : styles.list}
+          style={{ flex: 1 }}
+        />
+      </ScreenContainer>
     </View>
   )
 }

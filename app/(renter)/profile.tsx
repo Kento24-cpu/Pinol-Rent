@@ -1,6 +1,10 @@
 import { ProfileScreen } from '../../src/components/ProfileScreen'
+import { ScreenContainer } from '../../src/components/ScreenContainer'
 
 export default function RenterProfileScreen() {
-  return <ProfileScreen />
+  return (
+    <ScreenContainer style={{ flex: 1 }}>
+      <ProfileScreen />
+    </ScreenContainer>
+  )
 }
-

@@ -45,11 +45,11 @@ export const ReviewCard = memo(function ReviewCard({ rating, comment, createdAt,
           </Text>
         )}
       </View>
-      {comment && (
+      {comment ? (
         <Text variant="bodyMedium" style={[styles.comment, { color: colors.onSurface }]}>
           {comment}
         </Text>
-      )}
+      ) : null}
     </View>
   )
 })
