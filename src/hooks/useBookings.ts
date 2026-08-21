@@ -136,11 +136,15 @@ export function useBookings() {
   }, [user])
 
   const fetchBooking = useCallback(async (bookingId: number) => {
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('bookings')
       .select('*, car:car_id(brand, model, image_url, price_per_day, deposit), renter:renter_id(full_name, avatar_url)')
       .eq('id', bookingId)
       .single()
+    if (fetchError) {
+      setError(fetchError.message)
+      return null
+    }
 
     return parseRow(data, bookingRowSchema)
   }, [])

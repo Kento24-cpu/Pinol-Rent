@@ -6,6 +6,7 @@ import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { findOrCreateConversation } from '../../src/lib/chat'
 import { useReviews } from '../../src/hooks/useReviews'
+import { ErrorSnackbar } from '../../src/components/ErrorSnackbar'
 import { ReviewCard } from '../../src/components/ReviewCard'
 import { BackButton } from '../../src/components/BackButton'
 import { RENTER_FEE, renterFeeAmount, renterUnitPrice } from '../../src/lib/commission'
@@ -19,7 +20,7 @@ export default function CarDetailScreen() {
   const { colors } = useTheme()
   const [imageError, setImageError] = useState(false)
   const userId = useAuthStore((s) => s.session?.user?.id)
-  const { reviews, fetchCarReviews } = useReviews()
+  const { reviews, fetchCarReviews, error, clearError } = useReviews()
   const [car, setCar] = useState<CarWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
@@ -249,6 +250,7 @@ export default function CarDetailScreen() {
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
       </Snackbar>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </View>
   )
 }

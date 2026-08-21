@@ -72,14 +72,18 @@ export function usePaymentIntents() {
   const [intents, setIntents] = useState<PendingPaymentIntent[]>([])
   const [loading, setLoading] = useState(false)
   const genRef = useRef(0)
+  const [error, setError] = useState<string | null>(null)
+
+  const clearError = () => setError(null)
 
   const fetchPending = useCallback(async () => {
     const gen = ++genRef.current
     setLoading(true)
-    const { data, error } = await supabase.rpc('get_pending_payment_intents')
+    setError(null)
+    const { data, error: fetchError } = await supabase.rpc('get_pending_payment_intents')
     if (gen !== genRef.current) return
-    if (error) {
-      console.error('fetch pending intents error', error)
+    if (fetchError) {
+      setError(fetchError.message)
       setIntents([])
     } else {
       setIntents(parseRows(data, pendingPaymentIntentSchema))
@@ -144,5 +148,5 @@ export function usePaymentIntents() {
     return data as { status: string; card_last_four: string }
   }, [])
 
-  return { intents, loading, fetchPending, approve, decline, getPreview, submitCardPayment, decryptCard }
+  return { intents, loading, error, clearError, fetchPending, approve, decline, getPreview, submitCardPayment, decryptCard }
 }

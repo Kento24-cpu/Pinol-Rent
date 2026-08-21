@@ -9,6 +9,7 @@ import { useBookings } from '../../../src/hooks/useBookings'
 import { usePaymentIntents } from '../../../src/hooks/usePaymentIntents'
 import { z } from 'zod'
 import { parseRow } from '../../../src/lib/supabaseParse'
+import { ErrorSnackbar } from '../../../src/components/ErrorSnackbar'
 import { DETAIL_MAX } from '../../../src/lib/responsive'
 import { DateRangePicker } from '../../../src/components/DateRangePicker'
 import { RENTER_FEE, renterTotalPrice, renterFeeAmount } from '../../../src/lib/commission'
@@ -36,8 +37,8 @@ export default function BookCarScreen() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const user = useAuthStore((s) => s.session?.user)
-  const { createBooking, checkAvailability } = useBookings()
-  const { submitCardPayment } = usePaymentIntents()
+  const { createBooking, checkAvailability, error: bookingsError, clearError: clearBookingsError } = useBookings()
+  const { submitCardPayment, error: paymentError, clearError: clearPaymentError } = usePaymentIntents()
   const [car, setCar] = useState<CarForBooking | null>(null)
   const [ownerBank, setOwnerBank] = useState<OwnerBankInfo | null>(null)
   const [loading, setLoading] = useState(true)
@@ -170,7 +171,8 @@ export default function BookCarScreen() {
   const handleSelectPaymentMethod = async (method: 'card' | 'cash') => {
     if (!bookingId) return
     try {
-      await supabase.from('bookings').update({ payment_method: method }).eq('id', bookingId)
+      const { error } = await supabase.from('bookings').update({ payment_method: method }).eq('id', bookingId)
+      if (error) throw error
       setPaymentMethod(method)
       if (method === 'cash' && car?.owner_id) {
         await loadOwnerBank(car.owner_id)
@@ -379,9 +381,11 @@ export default function BookCarScreen() {
           )}
         </View>
 
-        <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
-          {snackbar.message}
-        </Snackbar>
+      <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
+        {snackbar.message}
+      </Snackbar>
+      <ErrorSnackbar error={bookingsError} onDismiss={clearBookingsError} />
+      <ErrorSnackbar error={paymentError} onDismiss={clearPaymentError} />
       </ScrollView>
     )
   }
@@ -409,6 +413,8 @@ export default function BookCarScreen() {
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
       </Snackbar>
+      <ErrorSnackbar error={bookingsError} onDismiss={clearBookingsError} />
+      <ErrorSnackbar error={paymentError} onDismiss={clearPaymentError} />
     </ScrollView>
   )
 }

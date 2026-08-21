@@ -31,14 +31,18 @@ export function useAdminBookings() {
   const [bookings, setBookings] = useState<AdminBooking[]>([])
   const [loading, setLoading] = useState(false)
   const genRef = useRef(0)
+  const [error, setError] = useState<string | null>(null)
+
+  const clearError = () => setError(null)
 
   const fetchAll = useCallback(async () => {
     const gen = ++genRef.current
     setLoading(true)
-    const { data, error } = await supabase.rpc('get_all_bookings')
+    setError(null)
+    const { data, error: fetchError } = await supabase.rpc('get_all_bookings')
     if (gen !== genRef.current) return
-    if (error) {
-      console.error('fetch all bookings error', error)
+    if (fetchError) {
+      setError(fetchError.message)
       setBookings([])
     } else {
       setBookings(parseRows(data, adminBookingSchema))
@@ -46,5 +50,5 @@ export function useAdminBookings() {
     setLoading(false)
   }, [])
 
-  return { bookings, loading, fetchAll }
+  return { bookings, loading, error, clearError, fetchAll }
 }

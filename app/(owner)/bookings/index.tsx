@@ -3,12 +3,13 @@ import { View, FlatList, StyleSheet, ActivityIndicator, RefreshControl } from 'r
 import { Text, useTheme, Icon } from 'react-native-paper'
 import { router, useFocusEffect } from 'expo-router'
 import { useBookings } from '../../../src/hooks/useBookings'
+import { ErrorSnackbar } from '../../../src/components/ErrorSnackbar'
 import { BookingCard } from '../../../src/components/BookingCard'
 import { ScreenContainer } from '../../../src/components/ScreenContainer'
 
 export default function OwnerBookingsScreen() {
   const { colors } = useTheme()
-  const { bookings, loading, fetchOwnerBookings } = useBookings()
+  const { bookings, loading, fetchOwnerBookings, error, clearError } = useBookings()
 
   useFocusEffect(useCallback(() => { fetchOwnerBookings() }, [fetchOwnerBookings]))
 
@@ -45,6 +46,7 @@ export default function OwnerBookingsScreen() {
           style={{ flex: 1 }}
         />
       </ScreenContainer>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </View>
   )
 }

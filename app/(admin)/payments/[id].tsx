@@ -3,12 +3,13 @@ import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Snackbar, useTheme, Icon } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { usePaymentIntents } from '../../../src/hooks/usePaymentIntents'
+import { ErrorSnackbar } from '../../../src/components/ErrorSnackbar'
 import { DETAIL_MAX } from '../../../src/lib/responsive'
 
 export default function PaymentDetailScreen() {
   const { id: paymentIdParam } = useLocalSearchParams<{ id: string }>()
   const { colors } = useTheme()
-  const { getPreview, approve, decline, decryptCard } = usePaymentIntents()
+  const { getPreview, approve, decline, decryptCard, error, clearError } = usePaymentIntents()
   const [preview, setPreview] = useState<{
     card_last_four: string
     card_holder: string
@@ -192,6 +193,7 @@ export default function PaymentDetailScreen() {
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={4000}>
         {snackbar.message}
       </Snackbar>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </ScrollView>
   )
 }

@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Chip, Snackbar, useTheme, Icon } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useBookings } from '../../../src/hooks/useBookings'
+import { ErrorSnackbar } from '../../../src/components/ErrorSnackbar'
 import { STATUS_COLORS, STATUS_LABELS } from '../../../src/lib/bookingStatus'
 import { OWNER_COMMISSION } from '../../../src/lib/commission'
 import { useAuthStore } from '../../../src/stores/authStore'
@@ -15,7 +16,7 @@ export default function OwnerBookingDetailScreen() {
   const userId = useAuthStore((s) => s.session?.user?.id)
   const { id: bookingIdParam } = useLocalSearchParams<{ id: string }>()
   const { colors } = useTheme()
-  const { fetchBooking, confirmBooking, cancelBooking, completeBooking, confirmCashBooking } = useBookings()
+  const { fetchBooking, confirmBooking, cancelBooking, completeBooking, confirmCashBooking, error, clearError } = useBookings()
   const [booking, setBooking] = useState<BookingWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
@@ -288,6 +289,7 @@ export default function OwnerBookingDetailScreen() {
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
       </Snackbar>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </ScrollView>
   )
 }

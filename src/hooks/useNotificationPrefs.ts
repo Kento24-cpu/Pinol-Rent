@@ -19,13 +19,17 @@ export function useNotificationPrefs() {
   const user = useAuthStore((s) => s.session?.user)
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULTS)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const prefsRef = useRef(prefs)
   const genRef = useRef(0)
   useEffect(() => { prefsRef.current = prefs }, [prefs])
 
+  const clearError = () => setError(null)
+
   const fetchPrefs = useCallback(async () => {
     if (!user) return
     const gen = ++genRef.current
+    setError(null)
     try {
       const { data: existing } = await supabase
         .from('notification_prefs')
@@ -37,16 +41,17 @@ export function useNotificationPrefs() {
       if (existing) {
         setPrefs(existing)
       } else {
-        const { data } = await supabase
+        const { data, error: insertError } = await supabase
           .from('notification_prefs')
           .insert({ user_id: user.id, ...DEFAULTS })
           .select('chat_push, booking_push, marketing')
           .single()
         if (gen !== genRef.current) return
+        if (insertError) { setError(insertError.message); return }
         if (data) setPrefs(data)
       }
     } catch (e) {
-      console.error('Failed to fetch notification prefs', e)
+      setError((e as Error).message)
     } finally {
       setLoading(false)
     }
@@ -72,5 +77,5 @@ export function useNotificationPrefs() {
     }
   }, [user])
 
-  return { prefs, loading, updatePref, refetch: fetchPrefs }
+  return { prefs, loading, error, clearError, updatePref, refetch: fetchPrefs }
 }

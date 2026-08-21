@@ -11,7 +11,10 @@ export function useConversations() {
   const setUnreads = useChatStore((s) => s.setUnreads)
   const [conversations, setConversations] = useState<ConversationWithLatest[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const genRef = useRef(0)
+
+  const clearError = () => setError(null)
 
   const fetchConversations = useCallback(async () => {
     if (!user) return
@@ -54,7 +57,7 @@ export function useConversations() {
         setUnreads({}, 0)
       }
     } catch (e) {
-      console.error('Failed to fetch conversations', e)
+      setError((e as Error).message)
     } finally {
       setLoading(false)
     }
@@ -82,5 +85,5 @@ export function useConversations() {
     return () => { supabase.removeChannel(channel) }
   }, [user, fetchConversations])
 
-  return { conversations, loading, refetch: fetchConversations }
+  return { conversations, loading, error, clearError, refetch: fetchConversations }
 }
