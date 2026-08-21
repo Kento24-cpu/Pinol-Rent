@@ -6,10 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuthStore } from '../../src/stores/authStore'
 import { CarCard } from '../../src/components/CarCard'
 import { useCars } from '../../src/hooks/useCars'
+import { useGridColumns, CARD_MAX_WIDTH } from '../../src/lib/responsive'
 
 export default function OwnerDashboard() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const gridColumns = useGridColumns()
   const user = useAuthStore((s) => s.session?.user)
   const { cars, loading, refreshing, error, fetchCars, cancel, clearError } = useCars({ ownerId: user?.id })
 
@@ -42,9 +44,15 @@ export default function OwnerDashboard() {
         </View>
       ) : (
         <FlatList
+          key={`grid-${gridColumns}`}
+          numColumns={gridColumns}
           data={cars}
           renderItem={({ item }) => (
-            <CarCard car={item} role="owner" onPress={(id) => router.push(`/(owner)/${id}`)} />
+            <View style={styles.cardCell}>
+              <View style={styles.cardCellInner}>
+                <CarCard car={item} role="owner" onPress={(id) => router.push(`/(owner)/${id}`)} />
+              </View>
+            </View>
           )}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}
@@ -80,6 +88,8 @@ const styles = StyleSheet.create({
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   list: { paddingBottom: 100 },
+  cardCell: { flex: 1, paddingHorizontal: 8, paddingBottom: 4 },
+  cardCellInner: { flex: 1, width: '100%', maxWidth: CARD_MAX_WIDTH, alignSelf: 'center' },
   fab: {
     position: 'absolute',
     bottom: 24,

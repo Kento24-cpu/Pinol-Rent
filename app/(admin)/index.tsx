@@ -4,6 +4,7 @@ import { Text, Button, Surface, Chip, useTheme, Icon } from 'react-native-paper'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { usePaymentIntents } from '../../src/hooks/usePaymentIntents'
+import { LIST_MAX_WIDTH } from '../../src/lib/responsive'
 
 export default function AdminDashboard() {
   const { colors } = useTheme()
@@ -32,73 +33,76 @@ export default function AdminDashboard() {
         </Button>
       </View>
 
-      {loading && intents.length === 0 ? (
-        <View style={styles.center}><ActivityIndicator size="large" /></View>
-      ) : intents.length === 0 ? (
-        <View style={styles.center}>
-          <Icon source="credit-card-check" size={64} color={colors.onSurfaceVariant} />
-          <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginTop: 16 }}>
-            No hay pagos pendientes
-          </Text>
-          <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 4 }}>
-            Los nuevos aparecerán aquí automáticamente
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={intents}
-          renderItem={({ item }) => (
-            <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={1}>
-              <View style={styles.cardHeader}>
-                <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
-                  {item.brand} {item.model}
-                </Text>
-                <Chip style={styles.chip} textStyle={styles.chipText}>
-                  ${item.amount.toLocaleString()}
-                </Chip>
-              </View>
-              <View style={styles.cardBody}>
-                <View style={styles.row}>
-                  <Icon source="account" size={16} color={colors.onSurfaceVariant} />
-                  <Text variant="bodyMedium" style={{ marginLeft: 6 }}>
-                    {item.renter_name}
+      <View style={styles.pageContent}>
+        {loading && intents.length === 0 ? (
+          <View style={styles.center}><ActivityIndicator size="large" /></View>
+        ) : intents.length === 0 ? (
+          <View style={styles.center}>
+            <Icon source="credit-card-check" size={64} color={colors.onSurfaceVariant} />
+            <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginTop: 16 }}>
+              No hay pagos pendientes
+            </Text>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 4 }}>
+              Los nuevos aparecerán aquí automáticamente
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={intents}
+            renderItem={({ item }) => (
+              <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={1}>
+                <View style={styles.cardHeader}>
+                  <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
+                    {item.brand} {item.model}
                   </Text>
+                  <Chip style={styles.chip} textStyle={styles.chipText}>
+                    ${item.amount.toLocaleString()}
+                  </Chip>
                 </View>
-                <View style={styles.row}>
-                  <Icon source="card" size={16} color={colors.onSurfaceVariant} />
-                  <Text variant="bodyMedium" style={{ marginLeft: 6 }}>
-                    **** {item.card_last_four}
-                  </Text>
+                <View style={styles.cardBody}>
+                  <View style={styles.row}>
+                    <Icon source="account" size={16} color={colors.onSurfaceVariant} />
+                    <Text variant="bodyMedium" style={{ marginLeft: 6 }}>
+                      {item.renter_name}
+                    </Text>
+                  </View>
+                  <View style={styles.row}>
+                    <Icon source="card" size={16} color={colors.onSurfaceVariant} />
+                    <Text variant="bodyMedium" style={{ marginLeft: 6 }}>
+                      **** {item.card_last_four}
+                    </Text>
+                  </View>
+                  <View style={styles.row}>
+                    <Icon source="clock" size={16} color={colors.onSurfaceVariant} />
+                    <Text variant="bodyMedium" style={{ marginLeft: 6 }}>
+                      {new Date(item.expires_at).toLocaleString()}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.row}>
-                  <Icon source="clock" size={16} color={colors.onSurfaceVariant} />
-                  <Text variant="bodyMedium" style={{ marginLeft: 6 }}>
-                    {new Date(item.expires_at).toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-              <Button
-                mode="contained"
-                icon="eye"
-                onPress={() => router.push(`/(admin)/payments/${item.id}`)}
-                style={styles.reviewBtn}
-              >
-                Revisar
-              </Button>
-            </Surface>
-          )}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.list}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-        />
-      )}
+                <Button
+                  mode="contained"
+                  icon="eye"
+                  onPress={() => router.push(`/(admin)/payments/${item.id}`)}
+                  style={styles.reviewBtn}
+                >
+                  Revisar
+                </Button>
+              </Surface>
+            )}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={styles.list}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        )}
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  pageContent: { flex: 1, width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

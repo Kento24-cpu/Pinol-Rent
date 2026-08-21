@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Snackbar, useTheme, Icon } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { usePaymentIntents } from '../../../src/hooks/usePaymentIntents'
+import { LIST_MAX_WIDTH } from '../../../src/lib/responsive'
 
 export default function PaymentDetailScreen() {
   const { id: paymentIdParam } = useLocalSearchParams<{ id: string }>()
@@ -100,93 +101,95 @@ export default function PaymentDetailScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
-        <Text variant="headlineSmall" style={{ fontWeight: 'bold', textAlign: 'center', marginBottom: 24 }}>
-          Detalle de pago
-        </Text>
-
-        <View style={styles.row}>
-          <Icon source="card" size={20} color={colors.primary} />
-          <Text variant="bodyLarge" style={{ marginLeft: 12 }}>
-            {decrypted?.card_number ? decrypted.card_number.match(/.{1,4}/g)?.join(' ') : `**** ${preview.card_last_four}`}
+      <View style={styles.pageContent}>
+        <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
+          <Text variant="headlineSmall" style={{ fontWeight: 'bold', textAlign: 'center', marginBottom: 24 }}>
+            Detalle de pago
           </Text>
-        </View>
 
-        <View style={styles.row}>
-          <Icon source="account" size={20} color={colors.primary} />
-          <Text variant="bodyLarge" style={{ marginLeft: 12 }}>
-            {preview.card_holder}
-          </Text>
-        </View>
-
-        {decrypted && (
           <View style={styles.row}>
-            <Icon source="calendar" size={20} color={colors.primary} />
+            <Icon source="card" size={20} color={colors.primary} />
             <Text variant="bodyLarge" style={{ marginLeft: 12 }}>
-              Vence: {decrypted.expiry}
+              {decrypted?.card_number ? decrypted.card_number.match(/.{1,4}/g)?.join(' ') : `**** ${preview.card_last_four}`}
             </Text>
           </View>
-        )}
 
-        {!decrypted && (
-          <Button
-            mode="text"
-            icon="lock-open"
-            onPress={handleDecrypt}
-            loading={decrypting}
-            disabled={decrypting}
-            style={{ marginTop: 8 }}
-            compact
-          >
-            Mostrar datos de tarjeta
-          </Button>
-        )}
+          <View style={styles.row}>
+            <Icon source="account" size={20} color={colors.primary} />
+            <Text variant="bodyLarge" style={{ marginLeft: 12 }}>
+              {preview.card_holder}
+            </Text>
+          </View>
 
-        <View style={[styles.divider, { backgroundColor: colors.outline }]} />
+          {decrypted && (
+            <View style={styles.row}>
+              <Icon source="calendar" size={20} color={colors.primary} />
+              <Text variant="bodyLarge" style={{ marginLeft: 12 }}>
+                Vence: {decrypted.expiry}
+              </Text>
+            </View>
+          )}
 
-        <View style={styles.row}>
-          <Icon source="currency-usd" size={20} color={colors.primary} />
-          <Text variant="titleLarge" style={{ marginLeft: 12, fontWeight: 'bold', color: colors.primary }}>
-            ${preview.amount.toLocaleString()}
+          {!decrypted && (
+            <Button
+              mode="text"
+              icon="lock-open"
+              onPress={handleDecrypt}
+              loading={decrypting}
+              disabled={decrypting}
+              style={{ marginTop: 8 }}
+              compact
+            >
+              Mostrar datos de tarjeta
+            </Button>
+          )}
+
+          <View style={[styles.divider, { backgroundColor: colors.outline }]} />
+
+          <View style={styles.row}>
+            <Icon source="currency-usd" size={20} color={colors.primary} />
+            <Text variant="titleLarge" style={{ marginLeft: 12, fontWeight: 'bold', color: colors.primary }}>
+              ${preview.amount.toLocaleString()}
+            </Text>
+          </View>
+
+          <View style={styles.row}>
+            <Icon source="calendar" size={20} color={colors.onSurfaceVariant} />
+            <Text variant="bodyMedium" style={{ marginLeft: 12, color: colors.onSurfaceVariant }}>
+              {new Date(preview.created_at).toLocaleString()}
+            </Text>
+          </View>
+        </Surface>
+
+        <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>
+          <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 16, color: colors.onSurfaceVariant }}>
+            ¿Apruebas o rechazas esta solicitud de pago?
           </Text>
-        </View>
-
-        <View style={styles.row}>
-          <Icon source="calendar" size={20} color={colors.onSurfaceVariant} />
-          <Text variant="bodyMedium" style={{ marginLeft: 12, color: colors.onSurfaceVariant }}>
-            {new Date(preview.created_at).toLocaleString()}
-          </Text>
-        </View>
-      </Surface>
-
-      <Surface style={[styles.actionsCard, { backgroundColor: colors.surface }]} elevation={1}>
-        <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 16, color: colors.onSurfaceVariant }}>
-          ¿Apruebas o rechazas esta solicitud de pago?
-        </Text>
-        <View style={styles.actionRow}>
-          <Button
-            mode="outlined"
-            icon="close"
-            textColor={colors.error}
-            onPress={handleDecline}
-            loading={updating}
-            disabled={updating}
-            style={[styles.actionBtn, { borderColor: '#C62828' }]}
-          >
-            Rechazar
-          </Button>
-          <Button
-            mode="contained"
-            icon="check"
-            onPress={handleApprove}
-            loading={updating}
-            disabled={updating}
-            style={styles.actionBtn}
-          >
-            Aprobar
-          </Button>
-        </View>
-      </Surface>
+          <View style={styles.actionRow}>
+            <Button
+              mode="outlined"
+              icon="close"
+              textColor={colors.error}
+              onPress={handleDecline}
+              loading={updating}
+              disabled={updating}
+              style={[styles.actionBtn, { borderColor: '#C62828' }]}
+            >
+              Rechazar
+            </Button>
+            <Button
+              mode="contained"
+              icon="check"
+              onPress={handleApprove}
+              loading={updating}
+              disabled={updating}
+              style={styles.actionBtn}
+            >
+              Aprobar
+            </Button>
+          </View>
+        </Surface>
+      </View>
 
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={4000}>
         {snackbar.message}
@@ -197,6 +200,7 @@ export default function PaymentDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  pageContent: { width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: { margin: 16, padding: 24, borderRadius: 20 },
   actionsCard: { margin: 16, padding: 20, borderRadius: 16, marginTop: 0 },

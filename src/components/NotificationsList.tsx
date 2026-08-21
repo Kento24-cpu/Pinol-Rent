@@ -3,6 +3,7 @@ import { Text, Surface, Icon, IconButton, useTheme, ActivityIndicator, Divider }
 import { router } from 'expo-router'
 import { useAuthStore } from '../stores/authStore'
 import { useNotifications, type NotificationItem } from '../hooks/useNotifications'
+import { LIST_MAX_WIDTH } from '../lib/responsive'
 import { useCallback } from 'react'
 
 function timeAgo(dateStr: string): string {
@@ -101,6 +102,7 @@ export function NotificationsList() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.pageContent}>
       {unreadCount > 0 && (
         <Surface style={[styles.headerBar, { backgroundColor: colors.surface }]} elevation={1}>
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
@@ -125,12 +127,14 @@ export function NotificationsList() {
         }
         contentContainerStyle={notifications.length === 0 ? styles.emptyContainer : undefined}
       />
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  pageContent: { flex: 1, width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerBar: {
     flexDirection: 'row',

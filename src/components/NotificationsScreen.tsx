@@ -5,6 +5,7 @@ import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuthStore } from '../stores/authStore'
 import { useNotificationPrefs } from '../hooks/useNotificationPrefs'
+import { LIST_MAX_WIDTH } from '../lib/responsive'
 
 export function NotificationsScreen() {
   const { colors } = useTheme()
@@ -37,6 +38,7 @@ export function NotificationsScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <View style={styles.pageContent}>
       <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Text variant="titleMedium" style={[styles.title, { color: colors.primary }]}>Notificaciones</Text>
 
@@ -83,6 +85,7 @@ export function NotificationsScreen() {
           }} color={colors.primary} />
         </View>
       </Surface>
+      </View>
 
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
@@ -94,6 +97,7 @@ export function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  pageContent: { width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   card: { margin: 16, padding: 24, borderRadius: 20 },
   title: { fontWeight: 'bold', marginBottom: 20 },
   row: {

@@ -9,6 +9,7 @@ import { findOrCreateConversation } from '../../src/lib/chat'
 import { useReviews } from '../../src/hooks/useReviews'
 import { ReviewCard } from '../../src/components/ReviewCard'
 import { RENTER_FEE, renterFeeAmount, renterUnitPrice } from '../../src/lib/commission'
+import { DETAIL_MAX_WIDTH, CARD_RADIUS } from '../../src/lib/responsive'
 import type { CarWithRelations } from '../../src/types/database.types'
 
 export default function CarDetailScreen() {
@@ -72,6 +73,7 @@ export default function CarDetailScreen() {
         <Icon source="arrow-left" size={24} color={colors.surface} />
       </TouchableOpacity>
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.detailContainer}>
         {car.image_url && !imageError ? (
           <Image source={{ uri: car.image_url }} style={styles.image} resizeMode="cover" onError={() => setImageError(true)} />
         ) : (
@@ -127,11 +129,11 @@ export default function CarDetailScreen() {
             </View>
           )}
 
-        {car.description && (
+        {car.description ? (
           <Text variant="bodyMedium" style={{ marginTop: 16, lineHeight: 22 }}>
             {car.description}
           </Text>
-        )}
+        ) : null}
 
         <View style={styles.infoSection}>
           <View style={styles.infoRow}>
@@ -140,12 +142,12 @@ export default function CarDetailScreen() {
               {car.department?.name || 'No especificado'}
             </Text>
           </View>
-          {car.location && (
+          {car.location ? (
             <View style={styles.infoRow}>
               <Icon source="map" size={20} color={colors.primary} />
               <Text variant="bodyMedium" style={{ marginLeft: 8 }}>{car.location}</Text>
             </View>
-          )}
+          ) : null}
         </View>
 
         {car.car_tags?.length > 0 && (
@@ -231,6 +233,7 @@ export default function CarDetailScreen() {
           </>
         )}
       </Surface>
+      </View>
       </ScrollView>
 
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
@@ -245,10 +248,20 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backButton: { position: 'absolute', left: 16, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20, padding: 8 },
   imagePlaceholder: {
-    height: 200, justifyContent: 'center', alignItems: 'center',
+    aspectRatio: 16 / 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopLeftRadius: CARD_RADIUS,
+    borderTopRightRadius: CARD_RADIUS,
   },
-  image: { width: '100%', aspectRatio: 16 / 9 },
-  card: { margin: 16, padding: 24, borderRadius: 20, marginTop: -30 },
+  image: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderTopLeftRadius: CARD_RADIUS,
+    borderTopRightRadius: CARD_RADIUS,
+  },
+  detailContainer: { width: '100%', maxWidth: DETAIL_MAX_WIDTH, alignSelf: 'center' },
+  card: { margin: 16, padding: 24, borderRadius: CARD_RADIUS, marginTop: -30 },
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginLeft: 8 },
   price: { fontWeight: 'bold' },

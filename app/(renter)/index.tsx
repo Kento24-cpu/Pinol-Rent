@@ -9,6 +9,7 @@ import { DepartmentPicker } from '../../src/components/DepartmentPicker'
 import { FilterModal } from '../../src/components/FilterModal'
 import { useCars } from '../../src/hooks/useCars'
 import { useAuthStore } from '../../src/stores/authStore'
+import { useGridColumns, CARD_MAX_WIDTH } from '../../src/lib/responsive'
 import type { Tables } from '../../src/types/database'
 type Department = Tables<'departments'>
 type Tag = Tables<'tags'>
@@ -26,6 +27,7 @@ const EMPTY_FILTERS: FilterValues = { priceMin: '', priceMax: '', tagIds: [], so
 export default function RenterDashboard() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const gridColumns = useGridColumns()
   const session = useAuthStore((s) => s.session)
   const [rawQuery, setRawQuery] = useState('')
   const [query, setQuery] = useState('')
@@ -116,7 +118,7 @@ export default function RenterDashboard() {
             onPress={() => setShowFilters(true)}
             style={styles.filterBtn}
           >
-            {activeFilterCount > 0 ? `${activeFilterCount}` : ''}
+            {activeFilterCount > 0 ? `${activeFilterCount}` : null}
           </Button>
         </View>
 
@@ -177,9 +179,15 @@ export default function RenterDashboard() {
         </View>
       ) : (
         <FlatList
+          key={`grid-${gridColumns}`}
+          numColumns={gridColumns}
           data={cars}
           renderItem={({ item }) => (
-            <CarCard car={item} role="renter" onPress={(id) => router.push(`/(renter)/${id}`)} />
+            <View style={styles.cardCell}>
+              <View style={styles.cardCellInner}>
+                <CarCard car={item} role="renter" onPress={(id) => router.push(`/(renter)/${id}`)} />
+              </View>
+            </View>
           )}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}
@@ -227,4 +235,6 @@ const styles = StyleSheet.create({
   activeChip: { height: 28 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   list: { paddingBottom: 32 },
+  cardCell: { flex: 1, paddingHorizontal: 8, paddingBottom: 4 },
+  cardCellInner: { flex: 1, width: '100%', maxWidth: CARD_MAX_WIDTH, alignSelf: 'center' },
 })

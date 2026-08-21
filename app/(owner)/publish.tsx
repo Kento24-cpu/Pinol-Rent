@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Image, Keyboard, TouchableWithoutFeedback } from 'react-native'
-import { Text, TextInput, Button, Surface, Switch, Snackbar, useTheme } from 'react-native-paper'
+import { Text, TextInput, Button, Switch, Snackbar, useTheme } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import { router } from 'expo-router'
@@ -13,6 +13,7 @@ import { mimeToExt, uriToBlob } from '../../src/lib/upload'
 import { showAlert } from '../../src/lib/alert'
 import { DepartmentPicker } from '../../src/components/DepartmentPicker'
 import { TagSelector } from '../../src/components/TagSelector'
+import { CARD_MAX_WIDTH, CARD_RADIUS } from '../../src/lib/responsive'
 import type { Tables } from '../../src/types/database'
 type Department = Tables<'departments'>
 type Tag = Tables<'tags'>
@@ -33,7 +34,6 @@ const schema = z.object({
     (v) => !v || (!isNaN(parseFloat(v)) && parseFloat(v) >= 0),
     'Depósito inválido'
   ),
-  location: z.string().optional(),
   description: z.string().optional(),
 })
 
@@ -56,7 +56,7 @@ export default function PublishScreen() {
     resolver: zodResolver(schema),
     defaultValues: {
       brand: '', model: '', year: String(new Date().getFullYear()),
-      color: '', price_per_day: '', description: '', location: '',
+      color: '', price_per_day: '', description: '',
     },
   })
 
@@ -135,7 +135,7 @@ export default function PublishScreen() {
       p_price_per_day: price_per_day,
       p_deposit: deposit,
       p_description: form.description || null,
-      p_location: form.location || null,
+      p_location: null,
       p_department_id: departmentId,
       p_available: available,
       p_image_url: imageUrl,
@@ -159,7 +159,7 @@ export default function PublishScreen() {
 
   const formContent = (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(40, insets.bottom + 16) }]}>
-      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
+      <View style={styles.content}>
         <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
           Publicar auto
         </Text>
@@ -230,15 +230,6 @@ export default function PublishScreen() {
 
         <Controller
           control={control}
-          name="location"
-          render={({ field: { onChange, value } }) => (
-            <TextInput label="Ubicación (ej. Managua, Masaya)" value={value} onChangeText={onChange}
-              mode="outlined" style={styles.input} disabled={isSubmitting} />
-          )}
-        />
-
-        <Controller
-          control={control}
           name="description"
           render={({ field: { onChange, value } }) => (
             <TextInput label="Descripción (opcional)" value={value} onChangeText={onChange}
@@ -250,7 +241,7 @@ export default function PublishScreen() {
         <Text variant="bodyMedium" style={styles.sectionLabel}>Foto</Text>
         {imageUrl ? (
           <View style={styles.imagePreview}>
-            <Image source={{ uri: imageUrl }} style={styles.imagePreviewImg} />
+            <Image source={{ uri: imageUrl }} style={styles.imagePreviewImg} resizeMode="cover" />
             <Button mode="text" onPress={() => setImageUrl(null)} compact>
               Quitar foto
             </Button>
@@ -304,7 +295,7 @@ export default function PublishScreen() {
         >
           {snackbar.message}
         </Snackbar>
-      </Surface>
+      </View>
     </ScrollView>
   )
 
@@ -325,7 +316,7 @@ export default function PublishScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 16, paddingBottom: 40 },
-  card: { padding: 24, borderRadius: 20 },
+  content: { width: '100%', maxWidth: CARD_MAX_WIDTH, alignSelf: 'center' },
   title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 24 },
   input: { marginBottom: 12 },
   row: { flexDirection: 'row', gap: 12 },
@@ -339,5 +330,5 @@ const styles = StyleSheet.create({
   actionBtn: { flex: 1, borderRadius: 12 },
   error: { textAlign: 'center', marginBottom: 16, fontWeight: '500' },
   imagePreview: { alignItems: 'center', marginBottom: 12 },
-  imagePreviewImg: { width: '100%', height: 160, borderRadius: 12, marginBottom: 8 },
+  imagePreviewImg: { width: '100%', aspectRatio: 16 / 9, borderRadius: CARD_RADIUS, marginBottom: 8 },
 })

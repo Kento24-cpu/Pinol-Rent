@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { BookingCard } from '../../../src/components/BookingCard'
+import { LIST_MAX_WIDTH } from '../../../src/lib/responsive'
 
 export default function RenterBookingsScreen() {
   const { colors } = useTheme()
@@ -41,7 +42,9 @@ export default function RenterBookingsScreen() {
         data={bookings}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
-          <BookingCard booking={item} onPress={(id) => router.push(`/(renter)/bookings/${id}`)} />
+          <View style={styles.cell}>
+            <BookingCard booking={item} onPress={(id) => router.push(`/(renter)/bookings/${id}`)} />
+          </View>
         )}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchMyBookings} />}
         ListEmptyComponent={
@@ -65,6 +68,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { paddingVertical: 12 },
+  cell: { width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   emptyContainer: { flex: 1 },
 })

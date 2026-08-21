@@ -8,6 +8,7 @@ import { OWNER_COMMISSION } from '../../../src/lib/commission'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { findOrCreateConversation } from '../../../src/lib/chat'
 import { supabase } from '../../../src/lib/supabase'
+import { LIST_MAX_WIDTH } from '../../../src/lib/responsive'
 import type { BookingWithRelations } from '../../../src/types/database.types'
 
 export default function OwnerBookingDetailScreen() {
@@ -110,7 +111,8 @@ export default function OwnerBookingDetailScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
+      <View style={styles.pageContent}>
+        <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Chip
           style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}
           textStyle={[styles.statusText, { color: statusColor }]}
@@ -283,6 +285,7 @@ export default function OwnerBookingDetailScreen() {
           Ver conversación
         </Button>
       )}
+      </View>
 
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
@@ -293,6 +296,7 @@ export default function OwnerBookingDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  pageContent: { width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: { margin: 16, padding: 24, borderRadius: 20 },
   actionsCard: { margin: 16, padding: 20, borderRadius: 16, marginTop: 0 },

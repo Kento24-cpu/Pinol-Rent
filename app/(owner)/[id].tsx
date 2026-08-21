@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { OWNER_COMMISSION, ownerNetPrice, ownerCommissionAmount } from '../../src/lib/commission'
+import { DETAIL_MAX_WIDTH, CARD_RADIUS } from '../../src/lib/responsive'
 import type { CarWithRelations } from '../../src/types/database.types'
 
 export default function OwnerCarDetailScreen() {
@@ -95,6 +96,7 @@ export default function OwnerCarDetailScreen() {
         <Icon source="arrow-left" size={24} color={colors.surface} />
       </TouchableOpacity>
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.detailContainer}>
         {car.image_url && !imageError ? (
           <Image source={{ uri: car.image_url }} style={styles.image} resizeMode="cover" onError={() => setImageError(true)} />
         ) : (
@@ -133,11 +135,11 @@ export default function OwnerCarDetailScreen() {
             ${ownerNetPrice(car.price_per_day)}/día — recibes
           </Text>
 
-          {car.description && (
+          {car.description ? (
             <Text variant="bodyMedium" style={{ marginTop: 16, lineHeight: 22 }}>
               {car.description}
             </Text>
-          )}
+          ) : null}
 
           <View style={styles.infoSection}>
             <View style={styles.infoRow}>
@@ -203,6 +205,7 @@ export default function OwnerCarDetailScreen() {
             </Button>
           </View>
         </Surface>
+        </View>
       </ScrollView>
 
       <Portal>
@@ -229,9 +232,21 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backButton: { position: 'absolute', left: 16, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20, padding: 8 },
-  imagePlaceholder: { height: 200, justifyContent: 'center', alignItems: 'center' },
-  image: { width: '100%', aspectRatio: 16 / 9 },
-  card: { margin: 16, padding: 24, borderRadius: 20, marginTop: -30 },
+  imagePlaceholder: {
+    aspectRatio: 16 / 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopLeftRadius: CARD_RADIUS,
+    borderTopRightRadius: CARD_RADIUS,
+  },
+  image: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderTopLeftRadius: CARD_RADIUS,
+    borderTopRightRadius: CARD_RADIUS,
+  },
+  detailContainer: { width: '100%', maxWidth: DETAIL_MAX_WIDTH, alignSelf: 'center' },
+  card: { margin: 16, padding: 24, borderRadius: CARD_RADIUS, marginTop: -30 },
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginLeft: 8 },
   price: { fontWeight: 'bold' },

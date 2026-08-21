@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { View, ScrollView, StyleSheet, ActivityIndicator, Linking } from 'react-native'
-import { Text, Button, Surface, Snackbar, useTheme, TextInput, SegmentedButtons } from 'react-native-paper'
+import { Text, Button, Surface, Snackbar, useTheme, TextInput, SegmentedButtons, Icon } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../../src/lib/supabase'
@@ -10,6 +10,7 @@ import { usePaymentIntents } from '../../../src/hooks/usePaymentIntents'
 import { DateRangePicker } from '../../../src/components/DateRangePicker'
 import { RENTER_FEE, renterTotalPrice, renterFeeAmount } from '../../../src/lib/commission'
 import { waMeUrl } from '../../../src/lib/whatsapp'
+import { LIST_MAX_WIDTH } from '../../../src/lib/responsive'
 
 interface CarForBooking {
   brand: string
@@ -41,6 +42,7 @@ export default function BookCarScreen() {
 
   const [showPayment, setShowPayment] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | null>(null)
+  const [whatsappSent, setWhatsappSent] = useState(false)
   const [bookingId, setBookingId] = useState<number | null>(null)
   const [totalPrice, setTotalPrice] = useState(0)
   const [unitPrice, setUnitPrice] = useState(0)
@@ -181,7 +183,17 @@ export default function BookCarScreen() {
     const totalToDeposit = totalPrice + deposit
     const renterName = (user?.user_metadata?.full_name as string | undefined) ?? 'Cliente'
     const message = `Hola, soy ${renterName}. Acabo de depositar $${totalToDeposit.toLocaleString()} por la reserva #${bookingId} del ${car.brand} ${car.model} (${bookingStart} al ${bookingEnd}). Te adjunto el comprobante. ¡Gracias!`
-    await Linking.openURL(waMeUrl(ownerBank.phone, message))
+    try {
+      await Linking.openURL(waMeUrl(ownerBank.phone, message))
+      setWhatsappSent(true)
+    } catch {
+      setSnackbar({ visible: true, message: 'No se pudo abrir WhatsApp' })
+    }
+  }
+
+  const handleChangeMethod = () => {
+    setPaymentMethod(null)
+    setWhatsappSent(false)
   }
 
   const handlePayment = async () => {
@@ -224,7 +236,7 @@ export default function BookCarScreen() {
   if (showPayment && bookingId) {
     return (
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={{ padding: 16, paddingBottom: insets.bottom + 16 }}>
+        <View style={[styles.pageContent, { padding: 16, paddingBottom: insets.bottom + 16 }]}>
           <Surface style={[styles.carInfo, { backgroundColor: colors.surface }]} elevation={1}>
             <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>
               {car?.brand} {car?.model}
@@ -234,7 +246,7 @@ export default function BookCarScreen() {
             </Text>
             {car?.deposit ? (
               <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 2 }}>
-                Depósito: ${car.deposit} por reserva
+                Depósito reembolsable: ${car.deposit} por reserva
               </Text>
             ) : null}
             <View style={styles.feeSummary}>
@@ -312,7 +324,12 @@ export default function BookCarScreen() {
               >
                 Pagar ${totalPrice.toLocaleString()} ({days} días)
               </Button>
-              <Button mode="text" onPress={() => setPaymentMethod(null)} compact style={{ marginTop: 4 }}>
+              {car?.deposit ? (
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, textAlign: 'center', marginTop: 8 }}>
+                  El depósito reembolsable no se aplica al pago con tarjeta.
+                </Text>
+              ) : null}
+              <Button mode="text" onPress={handleChangeMethod} compact style={{ marginTop: 4 }}>
                 Cambiar método de pago
               </Button>
             </Surface>
@@ -332,11 +349,11 @@ export default function BookCarScreen() {
                 </Text>
                 {car?.deposit ? (
                   <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-                    Depósito por reserva: ${car.deposit.toLocaleString()}
+                    Depósito reembolsable: ${car.deposit.toLocaleString()}
                   </Text>
                 ) : null}
                 <Text variant="titleMedium" style={[styles.totalLabel, { color: colors.onSurface }]}>
-                  Total a depositar: ${(totalPrice + (car?.deposit ?? 0)).toLocaleString()}
+                  Total a depositar{car?.deposit ? ' (incluye depósito reembolsable)' : ''}: ${(totalPrice + (car?.deposit ?? 0)).toLocaleString()}
                 </Text>
               </View>
 
@@ -358,16 +375,41 @@ export default function BookCarScreen() {
                 </Text>
               )}
 
-              <Button
-                mode="contained"
-                icon="whatsapp"
-                onPress={handleWhatsApp}
-                disabled={!ownerBank?.phone}
-                style={styles.button}
-              >
-                Enviar comprobante por WhatsApp
-              </Button>
-              <Button mode="text" onPress={() => setPaymentMethod(null)} compact style={{ marginTop: 4 }}>
+              {whatsappSent ? (
+                <>
+                  <View style={styles.sentBox}>
+                    <Icon source="check-circle" size={28} color={colors.primary} />
+                    <Text variant="bodyMedium" style={{ fontWeight: 'bold', marginTop: 8, textAlign: 'center' }}>
+                      ¿Ya enviaste el comprobante?
+                    </Text>
+                    <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 4, textAlign: 'center' }}>
+                      Tu reserva queda pendiente hasta que el arrendador confirme la recepción del depósito. Te avisaremos en la app.
+                    </Text>
+                  </View>
+                  <Button
+                    mode="contained"
+                    icon="eye"
+                    onPress={() => router.replace(`/(renter)/bookings/${bookingId}`)}
+                    style={styles.button}
+                  >
+                    Ver mi reserva
+                  </Button>
+                  <Button mode="text" icon="whatsapp" onPress={handleWhatsApp} compact style={{ marginTop: 4 }}>
+                    Abrir WhatsApp de nuevo
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  mode="contained"
+                  icon="whatsapp"
+                  onPress={handleWhatsApp}
+                  disabled={!ownerBank?.phone}
+                  style={styles.button}
+                >
+                  Enviar comprobante por WhatsApp
+                </Button>
+              )}
+              <Button mode="text" onPress={handleChangeMethod} compact style={{ marginTop: 4 }}>
                 Cambiar método de pago
               </Button>
             </Surface>
@@ -383,7 +425,7 @@ export default function BookCarScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={{ padding: 16, paddingBottom: insets.bottom + 16 }}>
+      <View style={[styles.pageContent, { padding: 16, paddingBottom: insets.bottom + 16 }]}>
         <Surface style={[styles.carInfo, { backgroundColor: colors.surface }]} elevation={1}>
           <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>
             {car?.brand} {car?.model}
@@ -410,6 +452,7 @@ export default function BookCarScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  pageContent: { width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   carInfo: { padding: 20, borderRadius: 16, marginBottom: 8, alignItems: 'center' },
   price: { fontWeight: 'bold', marginTop: 4 },
@@ -421,4 +464,5 @@ const styles = StyleSheet.create({
   feeSummary: { marginTop: 12, alignItems: 'center', gap: 2 },
   totalLabel: { fontWeight: 'bold', marginTop: 4 },
   bankBox: { borderRadius: 12, padding: 12, marginTop: 12, gap: 4 },
+  sentBox: { alignItems: 'center', marginTop: 12, marginBottom: 4 },
 })

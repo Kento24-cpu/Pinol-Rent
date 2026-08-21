@@ -1,6 +1,8 @@
-import { View, StyleSheet } from 'react-native'
+import { View, Image, StyleSheet } from 'react-native'
 import { Text, Card, Chip, Icon, useTheme } from 'react-native-paper'
+import { LinearGradient } from 'expo-linear-gradient'
 import { RATING_COLOR } from '../lib/theme'
+import { CARD_RADIUS } from '../lib/responsive'
 import { useState, memo } from 'react'
 import { OWNER_COMMISSION, RENTER_FEE, ownerNetPrice, ownerCommissionAmount, renterUnitPrice, renterFeeAmount } from '../lib/commission'
 
@@ -38,14 +40,28 @@ export const CarCard = memo(function CarCard({ car, onPress, role }: CarCardProp
       mode="elevated"
       elevation={2}
     >
-      {car.image_url && !imageError ? (
-        <Card.Cover source={{ uri: car.image_url }} style={styles.cover} onError={() => setImageError(true)} />
-      ) : (
-        <View style={[styles.coverPlaceholder, { backgroundColor: colors.primaryContainer }]}>
-          <Icon source="car" size={40} color={colors.onSurfaceVariant} />
-        </View>
-      )}
-      <Card.Content>
+      <View style={[styles.coverWrapper, { backgroundColor: colors.primaryContainer }]}>
+        {car.image_url && !imageError ? (
+          <>
+            <Image
+              source={{ uri: car.image_url }}
+              style={styles.cover}
+              resizeMode="cover"
+              onError={() => setImageError(true)}
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.35)']}
+              style={styles.coverScrim}
+              pointerEvents="none"
+            />
+          </>
+        ) : (
+          <View style={styles.coverPlaceholder}>
+            <Icon source="car" size={40} color={colors.onSurfaceVariant} />
+          </View>
+        )}
+      </View>
+      <Card.Content style={styles.content}>
         <View style={styles.topRow}>
           <Icon source="domain" size={16} color={colors.primary} />
           <Text variant="titleMedium" style={[styles.businessName, { color: colors.primary }]}>
@@ -146,9 +162,16 @@ export const CarCard = memo(function CarCard({ car, onPress, role }: CarCardProp
 })
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 16, marginVertical: 10, borderRadius: 16 },
-  cover: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180 },
-  coverPlaceholder: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180, justifyContent: 'center', alignItems: 'center' },
+  card: { marginVertical: 10, borderRadius: CARD_RADIUS, flexGrow: 1 },
+  coverWrapper: {
+    borderTopLeftRadius: CARD_RADIUS,
+    borderTopRightRadius: CARD_RADIUS,
+    overflow: 'hidden',
+  },
+  cover: { width: '100%', aspectRatio: 16 / 9 },
+  coverPlaceholder: { aspectRatio: 16 / 9, justifyContent: 'center', alignItems: 'center' },
+  coverScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '40%' },
+  content: { paddingTop: 12 },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   businessName: { fontWeight: 'bold', marginLeft: 6, flex: 1 },
   badge: { paddingHorizontal: 10, paddingVertical: 2, borderRadius: 20 },

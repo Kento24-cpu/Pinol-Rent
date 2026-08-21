@@ -3,6 +3,7 @@ import { View, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Refres
 import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge } from 'react-native-paper'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useConversations } from '../../../src/hooks/useConversations'
+import { LIST_MAX_WIDTH } from '../../../src/lib/responsive'
 
 export default function OwnerConversationsScreen() {
   const { carId: carIdParam } = useLocalSearchParams<{ carId?: string }>()
@@ -33,6 +34,7 @@ export default function OwnerConversationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.pageContent}>
       <Searchbar
         placeholder="Buscar conversaciones..."
         value={search}
@@ -99,12 +101,14 @@ export default function OwnerConversationsScreen() {
         }}
         contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
       />
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  pageContent: { flex: 1, width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   searchbar: { margin: 12 },
   list: { paddingHorizontal: 12, paddingBottom: 24 },

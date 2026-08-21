@@ -4,6 +4,7 @@ import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge, Button } from 're
 import { router, useFocusEffect } from 'expo-router'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { useConversations } from '../../../src/hooks/useConversations'
+import { LIST_MAX_WIDTH } from '../../../src/lib/responsive'
 
 export default function RenterConversationsScreen() {
   const { colors } = useTheme()
@@ -43,6 +44,7 @@ export default function RenterConversationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.pageContent}>
       <Searchbar
         placeholder="Buscar conversaciones..."
         value={search}
@@ -109,12 +111,14 @@ export default function RenterConversationsScreen() {
         }}
         contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
       />
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  pageContent: { flex: 1, width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   searchbar: { margin: 12 },
   list: { paddingHorizontal: 12, paddingBottom: 24 },

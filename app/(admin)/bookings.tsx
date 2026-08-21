@@ -4,6 +4,7 @@ import { Text, Button, Surface, Chip, useTheme, Icon, Searchbar } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAdminBookings } from '../../src/hooks/useAdminBookings'
 import { STATUS_COLORS, STATUS_LABELS } from '../../src/lib/bookingStatus'
+import { LIST_MAX_WIDTH } from '../../src/lib/responsive'
 
 export default function AdminBookingsScreen() {
   const { colors } = useTheme()
@@ -90,38 +91,41 @@ export default function AdminBookingsScreen() {
         </Button>
       </View>
 
-      <Searchbar
-        placeholder="Buscar por auto o cliente..."
-        value={search}
-        onChangeText={setSearch}
-        style={styles.search}
-      />
-
-      {loading && filtered.length === 0 ? (
-        <View style={styles.center}><ActivityIndicator size="large" /></View>
-      ) : filtered.length === 0 ? (
-        <View style={styles.center}>
-          <Icon source="calendar-remove" size={64} color={colors.onSurfaceVariant} />
-          <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginTop: 16 }}>
-            {search ? 'Sin resultados' : 'No hay reservas'}
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filtered}
-          renderItem={renderItem}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.list}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
+      <View style={styles.pageContent}>
+        <Searchbar
+          placeholder="Buscar por auto o cliente..."
+          value={search}
+          onChangeText={setSearch}
+          style={styles.search}
         />
-      )}
+
+        {loading && filtered.length === 0 ? (
+          <View style={styles.center}><ActivityIndicator size="large" /></View>
+        ) : filtered.length === 0 ? (
+          <View style={styles.center}>
+            <Icon source="calendar-remove" size={64} color={colors.onSurfaceVariant} />
+            <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginTop: 16 }}>
+              {search ? 'Sin resultados' : 'No hay reservas'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filtered}
+            renderItem={renderItem}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={styles.list}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        )}
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  pageContent: { flex: 1, width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
