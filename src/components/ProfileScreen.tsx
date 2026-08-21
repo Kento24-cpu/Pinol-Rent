@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native'
-import { Text, TextInput, Button, Surface, Snackbar, useTheme, Icon } from 'react-native-paper'
+import { Text, TextInput, Button, Snackbar, useTheme, Icon } from 'react-native-paper'
 import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { useForm, Controller } from 'react-hook-form'
@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { supabase } from '../lib/supabase'
 import { uriToBlob } from '../lib/upload'
+import { CARD_MAX_WIDTH } from '../lib/responsive'
 import { showAlert } from '../lib/alert'
 import { useAuthStore } from '../stores/authStore'
 import type { Database } from '../types/database'
@@ -230,9 +231,13 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
   }
 
   if (!editing) {
+    const displayName = isOwner
+      ? (profile?.businessName || 'Mi perfil')
+      : (profile?.fullName || 'Mi perfil')
+
     return (
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.scroll}>
-        <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
+        <View style={styles.content}>
           <View style={styles.avatarSection}>
             {profile?.avatarUrl && !avatarError ? (
               <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} onError={() => setAvatarError(true)} />
@@ -247,15 +252,22 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
             )}
           </View>
 
-          <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
-            Mi perfil
+          <Text variant="headlineSmall" style={[styles.title, { color: colors.onSurface }]}>
+            {displayName}
           </Text>
 
           {isOwner ? (
-            <View style={styles.fieldRow}>
-              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Empresa</Text>
-              <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.businessName || '-'}</Text>
-            </View>
+            <>
+              <View style={styles.fieldRow}>
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Empresa</Text>
+                <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.businessName || '-'}</Text>
+              </View>
+              <View style={[styles.divider, { backgroundColor: colors.outline }]} />
+              <View style={styles.fieldRow}>
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Dirección</Text>
+                <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.businessAddress || '-'}</Text>
+              </View>
+            </>
           ) : (
             <View style={styles.fieldRow}>
               <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Nombre completo</Text>
@@ -263,17 +275,14 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
             </View>
           )}
 
-          {isOwner && (
-            <View style={styles.fieldRow}>
-              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Dirección</Text>
-              <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.businessAddress || '-'}</Text>
-            </View>
-          )}
+          <View style={[styles.divider, { backgroundColor: colors.outline }]} />
 
           <View style={styles.fieldRow}>
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Cédula</Text>
             <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.cedula || '-'}</Text>
           </View>
+
+          <View style={[styles.divider, { backgroundColor: colors.outline }]} />
 
           <View style={styles.fieldRow}>
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Teléfono</Text>
@@ -282,14 +291,17 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
 
           {isOwner && (
             <>
+              <View style={[styles.divider, { backgroundColor: colors.outline }]} />
               <View style={styles.fieldRow}>
                 <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Banco</Text>
                 <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.bankName || '-'}</Text>
               </View>
+              <View style={[styles.divider, { backgroundColor: colors.outline }]} />
               <View style={styles.fieldRow}>
                 <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Número de cuenta</Text>
                 <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.bankAccountNumber || '-'}</Text>
               </View>
+              <View style={[styles.divider, { backgroundColor: colors.outline }]} />
               <View style={styles.fieldRow}>
                 <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Titular de la cuenta</Text>
                 <Text variant="bodyLarge" style={{ fontWeight: '500' }}>{profile?.bankAccountHolder || '-'}</Text>
@@ -300,7 +312,7 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
           <Button mode="contained" icon="pencil" onPress={startEditing} style={styles.button} contentStyle={styles.buttonContent}>
             Editar perfil
           </Button>
-        </Surface>
+        </View>
 
         <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
           {snackbar.message}
@@ -311,7 +323,7 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.scroll}>
-      <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
+      <View style={styles.content}>
         <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
           Editar perfil
         </Text>
@@ -330,11 +342,11 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
             <Button mode="outlined" icon="camera" onPress={pickAndUploadAvatar} loading={uploading} disabled={uploading} compact labelStyle={{ fontSize: 13 }}>
               {avatarUrl ? 'Cambiar' : 'Subir foto'}
             </Button>
-            {avatarUrl && (
+            {avatarUrl ? (
               <Button mode="text" icon="close" onPress={removeAvatar} disabled={uploading} compact labelStyle={{ fontSize: 13 }}>
                 Quitar
               </Button>
-            )}
+            ) : null}
           </View>
         </View>
 
@@ -440,7 +452,7 @@ export function ProfileScreen({ isOwner }: ProfileScreenProps) {
             Guardar
           </Button>
         </View>
-      </Surface>
+      </View>
 
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
@@ -453,7 +465,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 16, paddingBottom: 40 },
-  card: { padding: 24, borderRadius: 20 },
+  content: { width: '100%', maxWidth: CARD_MAX_WIDTH, alignSelf: 'center' },
   avatarSection: { alignItems: 'center', marginBottom: 16 },
   avatarEditSection: { alignItems: 'center', marginBottom: 20 },
   avatar: {
@@ -466,12 +478,13 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 36, fontWeight: 'bold' },
   avatarActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 24 },
-  fieldRow: { marginBottom: 16 },
+  title: { textAlign: 'center', fontWeight: 'bold', marginBottom: 12 },
+  fieldRow: { paddingVertical: 12 },
+  divider: { height: StyleSheet.hairlineWidth },
   fieldError: { fontSize: 12, marginBottom: 10, marginLeft: 4 },
   input: { marginBottom: 12 },
   bankSectionLabel: { fontWeight: 'bold', marginBottom: 4, marginTop: 8 },
-  button: { borderRadius: 12, marginTop: 8 },
+  button: { borderRadius: 12, marginTop: 16 },
   buttonContent: { paddingVertical: 6 },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
   halfBtn: { flex: 1, borderRadius: 12 },

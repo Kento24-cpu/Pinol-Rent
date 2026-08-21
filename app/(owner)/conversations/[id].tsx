@@ -2,6 +2,7 @@ import { View, StyleSheet } from 'react-native'
 import { useTheme, Text } from 'react-native-paper'
 import { useLocalSearchParams } from 'expo-router'
 import { ChatScreen } from '../../../src/components/ChatScreen'
+import { ScreenContainer } from '../../../src/components/ScreenContainer'
 
 export default function OwnerChatScreen() {
   const { id } = useLocalSearchParams()
@@ -16,7 +17,11 @@ export default function OwnerChatScreen() {
     )
   }
 
-  return <ChatScreen conversationId={conversationId} />
+  return (
+    <ScreenContainer style={{ flex: 1 }}>
+      <ChatScreen conversationId={conversationId} />
+    </ScreenContainer>
+  )
 }
 
 const styles = StyleSheet.create({

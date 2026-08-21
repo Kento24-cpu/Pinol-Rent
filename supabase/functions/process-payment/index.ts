@@ -13,8 +13,9 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !supabaseKey) {
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
       return corsResponse('server config error', 500)
     }
 
@@ -24,25 +25,54 @@ serve(async (req) => {
       return corsResponse('no autorizado', 401)
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    // userClient: only to validate the caller's JWT. The user Authorization
+    // header must NOT leak into the service-role client below — PostgREST
+    // takes the role from the Bearer token, so every query would otherwise
+    // run as `authenticated` and RLS (payment_intents has no policies by
+    // design) would block the insert with 42501.
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false },
     })
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await userClient.auth.getUser()
     if (authError || !user) {
       return corsResponse('no autorizado', 401)
     }
 
-    const { booking_id, card_number, card_holder, expiry } = await req.json()
+    // adminClient: service_role bypasses RLS. Booking ownership is still
+    // enforced manually against user.id below.
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+    })
 
-    if (!booking_id || !card_number || !card_holder) {
-      return corsResponse('missing required fields', 400)
+    let body: { booking_id?: unknown; card_number?: unknown; card_holder?: unknown; expiry?: unknown }
+    try {
+      body = await req.json()
+    } catch {
+      return corsResponse('invalid body', 400)
     }
 
-    const lastFour = card_number.slice(-4)
+    const bookingId = Number(body.booking_id)
+    const rawCardNumber = typeof body.card_number === 'string' ? body.card_number : ''
+    const cardHolder = typeof body.card_holder === 'string' ? body.card_holder.trim() : ''
+    const expiry = typeof body.expiry === 'string' ? body.expiry.trim() : ''
+    const cardNumber = rawCardNumber.replace(/\D/g, '')
+
+    if (!Number.isInteger(bookingId)) {
+      return corsResponse('missing required fields', 400)
+    }
+    if (!cardHolder) {
+      return corsResponse('missing required fields', 400)
+    }
+    if (cardNumber.length < 4 || cardNumber.length > 19) {
+      return corsResponse('invalid card number', 400)
+    }
+
+    const lastFour = cardNumber.slice(-4)
 
     const enc = new TextEncoder()
     const keyBytes = await crypto.subtle.importKey(
@@ -53,7 +83,7 @@ serve(async (req) => {
       ['encrypt']
     )
     const iv = crypto.getRandomValues(new Uint8Array(12))
-    const plaintext = enc.encode(JSON.stringify({ card_number, card_holder, expiry }))
+    const plaintext = enc.encode(JSON.stringify({ card_number: cardNumber, card_holder: cardHolder, expiry }))
     const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, keyBytes, plaintext)
 
     const combined = new Uint8Array(iv.length + encrypted.byteLength)
@@ -64,10 +94,10 @@ serve(async (req) => {
     for (let i = 0; i < combined.length; i++) binary += String.fromCharCode(combined[i])
     const encryptedB64 = btoa(binary)
 
-    const { data: booking } = await supabase
+    const { data: booking } = await adminClient
       .from('bookings')
       .select('id, renter_id, status, total_price, payment_method')
-      .eq('id', booking_id)
+      .eq('id', bookingId)
       .single()
 
     if (!booking) {
@@ -83,13 +113,13 @@ serve(async (req) => {
       return corsResponse('esta reserva se paga en efectivo', 409)
     }
 
-    const { error } = await supabase
+    const { error } = await adminClient
       .from('payment_intents')
       .insert({
-        booking_id,
+        booking_id: bookingId,
         card_encrypted: encryptedB64,
         card_last_four: lastFour,
-        card_holder,
+        card_holder: cardHolder,
         amount: booking.total_price,
       })
 

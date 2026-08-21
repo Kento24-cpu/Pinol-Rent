@@ -6,12 +6,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuthStore } from '../../src/stores/authStore'
 import { CarCard } from '../../src/components/CarCard'
 import { useCars } from '../../src/hooks/useCars'
+import { ScreenContainer } from '../../src/components/ScreenContainer'
+import { useColumns } from '../../src/lib/responsive'
 
 export default function OwnerDashboard() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const user = useAuthStore((s) => s.session?.user)
   const { cars, loading, refreshing, error, fetchCars, cancel, clearError } = useCars({ ownerId: user?.id })
+  const cols = useColumns({ mobile: 1, tablet: 2, desktop: 3 })
 
   useFocusEffect(useCallback(() => {
     // Wait for the session: without ownerId the hook would fetch public cars
@@ -22,36 +25,48 @@ export default function OwnerDashboard() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: colors.onBackground }}>
-          Mis autos
-        </Text>
-      </View>
-
-      {loading ? (
-        <View style={styles.center}><ActivityIndicator size="large" /></View>
-      ) : cars.length === 0 ? (
-        <View style={styles.center}>
-          <Text variant="displayMedium" style={{ marginBottom: 16 }}>🚗</Text>
-          <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant }}>
-            Aún no has publicado autos
-          </Text>
-          <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, textAlign: 'center', marginTop: 8 }}>
-            Toca el botón + para publicar tu primer auto
+      <ScreenContainer style={{ flex: 1 }}>
+        <View style={styles.header}>
+          <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: colors.onBackground }}>
+            Mis autos
           </Text>
         </View>
-      ) : (
-        <FlatList
-          data={cars}
-          renderItem={({ item }) => (
-            <CarCard car={item} role="owner" onPress={(id) => router.push(`/(owner)/${id}`)} />
-          )}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.list}
-          refreshing={refreshing}
-          onRefresh={() => fetchCars(true)}
-        />
-      )}
+
+        {loading ? (
+          <View style={styles.center}><ActivityIndicator size="large" /></View>
+        ) : cars.length === 0 ? (
+          <View style={styles.center}>
+            <Text variant="displayMedium" style={{ marginBottom: 16 }}>🚗</Text>
+            <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant }}>
+              Aún no has publicado autos
+            </Text>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, textAlign: 'center', marginTop: 8 }}>
+              Toca el botón + para publicar tu primer auto
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={cars}
+            numColumns={cols}
+            key={cols}
+            renderItem={({ item }) =>
+              cols > 1 ? (
+                <View style={styles.gridItem}>
+                  <CarCard car={item} role="owner" grid onPress={(id) => router.push(`/(owner)/${id}`)} />
+                </View>
+              ) : (
+                <CarCard car={item} role="owner" onPress={(id) => router.push(`/(owner)/${id}`)} />
+              )
+            }
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={[styles.list, cols > 1 && styles.gridList]}
+            columnWrapperStyle={cols > 1 ? styles.gridRow : undefined}
+            style={{ flex: 1 }}
+            refreshing={refreshing}
+            onRefresh={() => fetchCars(true)}
+          />
+        )}
+      </ScreenContainer>
 
       <FAB
         icon="plus"
@@ -80,6 +95,9 @@ const styles = StyleSheet.create({
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   list: { paddingBottom: 100 },
+  gridList: { paddingHorizontal: 16 },
+  gridRow: { gap: 16 },
+  gridItem: { flex: 1, marginBottom: 16 },
   fab: {
     position: 'absolute',
     bottom: 24,

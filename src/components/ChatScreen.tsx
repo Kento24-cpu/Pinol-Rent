@@ -4,6 +4,7 @@ import { Text, IconButton, useTheme, ActivityIndicator, Avatar, Icon, Snackbar }
 import * as ImagePicker from 'expo-image-picker'
 import { useChat } from '../hooks/useChat'
 import { showAlert } from '../lib/alert'
+import { LIST_MAX_WIDTH } from '../lib/responsive'
 import type { MessageWithSender } from '../types/database.types'
 import { useAuthStore } from '../stores/authStore'
 import { useChatStore } from '../stores/chatStore'
@@ -130,42 +131,44 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={renderMessage}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Icon source="chat-outline" size={48} color={colors.onSurfaceVariant} />
-            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
-              Envía un mensaje para iniciar la conversación
-            </Text>
-          </View>
-        }
-        contentContainerStyle={messages.length === 0 ? styles.emptyContainer : styles.list}
-      />
-      <View style={[styles.inputBar, { backgroundColor: colors.surface, borderTopColor: colors.outline }]}>
-        <IconButton icon="paperclip" size={22} onPress={handleAttach} disabled={sending} accessibilityLabel="Adjuntar imagen" />
-        <RNTextInput
-          ref={inputRef}
-          value={input}
-          onChangeText={setInput}
-          onKeyPress={handleKeyPress}
-          placeholder="Escribe un mensaje...  (Enter enviar)"
-          style={[styles.input, { backgroundColor: colors.surfaceVariant, color: colors.onSurface }]}
-          multiline
-          editable={!sending}
+      <View style={styles.pageContent}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderMessage}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Icon source="chat-outline" size={48} color={colors.onSurfaceVariant} />
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
+                Envía un mensaje para iniciar la conversación
+              </Text>
+            </View>
+          }
+          contentContainerStyle={messages.length === 0 ? styles.emptyContainer : styles.list}
         />
-        <IconButton
-          icon="send"
-          size={22}
-          iconColor={colors.primary}
-          disabled={!input.trim() || sending}
-          onPress={handleSend}
-          accessibilityLabel="Enviar mensaje"
-        />
+        <View style={[styles.inputBar, { backgroundColor: colors.surface, borderTopColor: colors.outline }]}>
+          <IconButton icon="paperclip" size={22} onPress={handleAttach} disabled={sending} accessibilityLabel="Adjuntar imagen" />
+          <RNTextInput
+            ref={inputRef}
+            value={input}
+            onChangeText={setInput}
+            onKeyPress={handleKeyPress}
+            placeholder="Escribe un mensaje...  (Enter enviar)"
+            style={[styles.input, { backgroundColor: colors.surfaceVariant, color: colors.onSurface }]}
+            multiline
+            editable={!sending}
+          />
+          <IconButton
+            icon="send"
+            size={22}
+            iconColor={colors.primary}
+            disabled={!input.trim() || sending}
+            onPress={handleSend}
+            accessibilityLabel="Enviar mensaje"
+          />
+        </View>
       </View>
 
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
@@ -177,6 +180,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  pageContent: { flex: 1, width: '100%', maxWidth: LIST_MAX_WIDTH, alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 12, paddingBottom: 8 },
   msgRow: { marginVertical: 3, flexDirection: 'row', alignItems: 'flex-end' },

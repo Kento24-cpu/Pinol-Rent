@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Snackbar, useTheme, Icon } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { usePaymentIntents } from '../../../src/hooks/usePaymentIntents'
+import { DETAIL_MAX } from '../../../src/lib/responsive'
 
 export default function PaymentDetailScreen() {
   const { id: paymentIdParam } = useLocalSearchParams<{ id: string }>()
@@ -99,7 +100,7 @@ export default function PaymentDetailScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ maxWidth: DETAIL_MAX, alignSelf: 'center', width: '100%' }}>
       <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Text variant="headlineSmall" style={{ fontWeight: 'bold', textAlign: 'center', marginBottom: 24 }}>
           Detalle de pago

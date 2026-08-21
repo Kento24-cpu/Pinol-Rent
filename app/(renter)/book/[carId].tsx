@@ -7,6 +7,7 @@ import { supabase } from '../../../src/lib/supabase'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { usePaymentIntents } from '../../../src/hooks/usePaymentIntents'
+import { DETAIL_MAX } from '../../../src/lib/responsive'
 import { DateRangePicker } from '../../../src/components/DateRangePicker'
 import { RENTER_FEE, renterTotalPrice, renterFeeAmount } from '../../../src/lib/commission'
 import { waMeUrl } from '../../../src/lib/whatsapp'
@@ -223,7 +224,7 @@ export default function BookCarScreen() {
 
   if (showPayment && bookingId) {
     return (
-      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ maxWidth: DETAIL_MAX, alignSelf: 'center', width: '100%' }}>
         <View style={{ padding: 16, paddingBottom: insets.bottom + 16 }}>
           <Surface style={[styles.carInfo, { backgroundColor: colors.surface }]} elevation={1}>
             <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>

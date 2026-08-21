@@ -4,6 +4,7 @@ import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge, Button } from 're
 import { router, useFocusEffect } from 'expo-router'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { useConversations } from '../../../src/hooks/useConversations'
+import { ScreenContainer } from '../../../src/components/ScreenContainer'
 
 export default function RenterConversationsScreen() {
   const { colors } = useTheme()
@@ -43,72 +44,75 @@ export default function RenterConversationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Searchbar
-        placeholder="Buscar conversaciones..."
-        value={search}
-        onChangeText={setSearch}
-        style={styles.searchbar}
-      />
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => String(item.id)}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Icon source="forum-outline" size={48} color={colors.onSurfaceVariant} />
-            <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
-              No tienes conversaciones
-            </Text>
-            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-              Explora autos y contacta a los dueños
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => {
-          const latest = Array.isArray(item.latest_message) ? item.latest_message[0] : item.latest_message
-          return (
-          <TouchableOpacity onPress={() => router.push(`/(renter)/conversations/${item.id}`)}>
-            <Card style={styles.card} mode="elevated" elevation={1}>
-              <View style={styles.row}>
-                <View>
-                  {item.owner?.avatar_url ? (
-                    <Avatar.Image size={48} source={{ uri: item.owner.avatar_url }} />
-                  ) : (
-                    <Avatar.Text size={48} label={(item.owner?.full_name?.[0] ?? '?').toUpperCase()} />
-                  )}
-                  {!!item.unread_count && (
-                    <Badge size={18} style={styles.badge}>
-                      {item.unread_count}
-                    </Badge>
-                  )}
-                </View>
-                <View style={styles.content}>
-                  <View style={styles.topRow}>
-                    <Text variant="titleSmall" style={{ fontWeight: 'bold', flex: 1 }} numberOfLines={1}>
-                      {item.owner?.full_name ?? 'Dueño'}
+      <ScreenContainer style={{ flex: 1 }}>
+        <Searchbar
+          placeholder="Buscar conversaciones..."
+          value={search}
+          onChangeText={setSearch}
+          style={styles.searchbar}
+        />
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => String(item.id)}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Icon source="forum-outline" size={48} color={colors.onSurfaceVariant} />
+              <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
+                No tienes conversaciones
+              </Text>
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+                Explora autos y contacta a los dueños
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => {
+            const latest = Array.isArray(item.latest_message) ? item.latest_message[0] : item.latest_message
+            return (
+            <TouchableOpacity onPress={() => router.push(`/(renter)/conversations/${item.id}`)}>
+              <Card style={styles.card} mode="elevated" elevation={1}>
+                <View style={styles.row}>
+                  <View>
+                    {item.owner?.avatar_url ? (
+                      <Avatar.Image size={48} source={{ uri: item.owner.avatar_url }} />
+                    ) : (
+                      <Avatar.Text size={48} label={(item.owner?.full_name?.[0] ?? '?').toUpperCase()} />
+                    )}
+                    {!!item.unread_count && (
+                      <Badge size={18} style={styles.badge}>
+                        {item.unread_count}
+                      </Badge>
+                    )}
+                  </View>
+                  <View style={styles.content}>
+                    <View style={styles.topRow}>
+                      <Text variant="titleSmall" style={{ fontWeight: 'bold', flex: 1 }} numberOfLines={1}>
+                        {item.owner?.full_name ?? 'Dueño'}
+                      </Text>
+                      {latest && (
+                        <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
+                          {latest.created_at ? new Date(latest.created_at).toLocaleDateString() : ''}
+                        </Text>
+                      )}
+                    </View>
+                    <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
+                      {item.car ? `${item.car.brand} ${item.car.model}` : 'Auto'}
                     </Text>
                     {latest && (
-                      <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
-                        {latest.created_at ? new Date(latest.created_at).toLocaleDateString() : ''}
+                      <Text variant="bodyMedium" numberOfLines={1} style={{ marginTop: 2 }}>
+                        {latest.content}
                       </Text>
                     )}
                   </View>
-                  <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
-                    {item.car ? `${item.car.brand} ${item.car.model}` : 'Auto'}
-                  </Text>
-                  {latest && (
-                    <Text variant="bodyMedium" numberOfLines={1} style={{ marginTop: 2 }}>
-                      {latest.content}
-                    </Text>
-                  )}
                 </View>
-              </View>
-            </Card>
-          </TouchableOpacity>
-          )
-        }}
-        contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
-      />
+              </Card>
+            </TouchableOpacity>
+            )
+          }}
+          contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
+          style={{ flex: 1 }}
+        />
+      </ScreenContainer>
     </View>
   )
 }

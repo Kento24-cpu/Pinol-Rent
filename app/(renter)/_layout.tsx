@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { View } from 'react-native'
+import { View, useWindowDimensions } from 'react-native'
 import { Drawer } from 'expo-router/drawer'
 import { router } from 'expo-router'
 import { Icon, Badge, useTheme } from 'react-native-paper'
@@ -8,9 +8,12 @@ import { useChatStore } from '../../src/stores/chatStore'
 import { useNotifications } from '../../src/hooks/useNotifications'
 import { AppDrawerContent } from '../../src/components/AppDrawerContent'
 import { OfflineBanner } from '../../src/components/OfflineBanner'
+import { BREAKPOINTS, SIDEBAR_WIDTH } from '../../src/lib/responsive'
 
 export default function RenterLayout() {
   const { colors } = useTheme()
+  const { width } = useWindowDimensions()
+  const isDesktop = width >= BREAKPOINTS.desktop
   const role = useAuthStore((s) => s.role)
   const initialized = useAuthStore((s) => s.initialized)
   const unreadTotal = useChatStore((s) => s.unreadTotal)
@@ -29,13 +32,16 @@ export default function RenterLayout() {
       <Drawer
         drawerContent={(props) => <AppDrawerContent {...props} />}
       screenOptions={{
+        drawerType: isDesktop ? 'permanent' : 'front',
+        swipeEnabled: !isDesktop,
         drawerActiveTintColor: colors.primary,
         drawerInactiveTintColor: colors.onSurfaceVariant,
         drawerActiveBackgroundColor: colors.primaryContainer,
-        drawerStyle: { backgroundColor: colors.surface, width: 280 },
+        drawerStyle: { backgroundColor: colors.surface, width: SIDEBAR_WIDTH, borderRightWidth: 1, borderRightColor: colors.outline },
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.onBackground,
         headerShadowVisible: false,
+        headerLeft: isDesktop ? () => null : undefined,
       }}
     >
       <Drawer.Screen

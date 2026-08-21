@@ -4,6 +4,7 @@ import { Text, Button, Surface, Chip, useTheme, Icon, Searchbar } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAdminBookings } from '../../src/hooks/useAdminBookings'
 import { STATUS_COLORS, STATUS_LABELS } from '../../src/lib/bookingStatus'
+import { ScreenContainer } from '../../src/components/ScreenContainer'
 
 export default function AdminBookingsScreen() {
   const { colors } = useTheme()
@@ -81,41 +82,44 @@ export default function AdminBookingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: colors.onBackground }}>
-          Historial de reservas
-        </Text>
-        <Button mode="contained" icon="refresh" onPress={handleRefresh} loading={refreshing} compact>
-          Recargar
-        </Button>
-      </View>
-
-      <Searchbar
-        placeholder="Buscar por auto o cliente..."
-        value={search}
-        onChangeText={setSearch}
-        style={styles.search}
-      />
-
-      {loading && filtered.length === 0 ? (
-        <View style={styles.center}><ActivityIndicator size="large" /></View>
-      ) : filtered.length === 0 ? (
-        <View style={styles.center}>
-          <Icon source="calendar-remove" size={64} color={colors.onSurfaceVariant} />
-          <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginTop: 16 }}>
-            {search ? 'Sin resultados' : 'No hay reservas'}
+      <ScreenContainer style={{ flex: 1 }}>
+        <View style={styles.header}>
+          <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: colors.onBackground }}>
+            Historial de reservas
           </Text>
+          <Button mode="contained" icon="refresh" onPress={handleRefresh} loading={refreshing} compact>
+            Recargar
+          </Button>
         </View>
-      ) : (
-        <FlatList
-          data={filtered}
-          renderItem={renderItem}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.list}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
+
+        <Searchbar
+          placeholder="Buscar por auto o cliente..."
+          value={search}
+          onChangeText={setSearch}
+          style={styles.search}
         />
-      )}
+
+        {loading && filtered.length === 0 ? (
+          <View style={styles.center}><ActivityIndicator size="large" /></View>
+        ) : filtered.length === 0 ? (
+          <View style={styles.center}>
+            <Icon source="calendar-remove" size={64} color={colors.onSurfaceVariant} />
+            <Text variant="bodyLarge" style={{ color: colors.onSurfaceVariant, marginTop: 16 }}>
+              {search ? 'Sin resultados' : 'No hay reservas'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filtered}
+            renderItem={renderItem}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={styles.list}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            style={{ flex: 1 }}
+          />
+        )}
+      </ScreenContainer>
     </View>
   )
 }

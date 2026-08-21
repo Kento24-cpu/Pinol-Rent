@@ -25,15 +25,16 @@ interface CarCardProps {
   car: CarCardCar
   onPress: (id: number) => void
   role?: 'owner' | 'renter'
+  grid?: boolean
 }
 
-export const CarCard = memo(function CarCard({ car, onPress, role }: CarCardProps) {
+export const CarCard = memo(function CarCard({ car, onPress, role, grid }: CarCardProps) {
   const { colors } = useTheme()
   const [imageError, setImageError] = useState(false)
 
   return (
     <Card
-      style={[styles.card, { backgroundColor: colors.surface }]}
+      style={[styles.card, grid && styles.cardGrid, { backgroundColor: colors.surface }]}
       onPress={() => onPress(car.id)}
       mode="elevated"
       elevation={2}
@@ -147,6 +148,7 @@ export const CarCard = memo(function CarCard({ car, onPress, role }: CarCardProp
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: 16, marginVertical: 10, borderRadius: 16 },
+  cardGrid: { marginHorizontal: 0, marginVertical: 0, borderRadius: 16, flex: 1 },
   cover: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180 },
   coverPlaceholder: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180, justifyContent: 'center', alignItems: 'center' },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },

@@ -13,6 +13,7 @@ import { mimeToExt, uriToBlob } from '../../src/lib/upload'
 import { showAlert } from '../../src/lib/alert'
 import { DepartmentPicker } from '../../src/components/DepartmentPicker'
 import { TagSelector } from '../../src/components/TagSelector'
+import { DETAIL_MAX } from '../../src/lib/responsive'
 import type { Tables } from '../../src/types/database'
 type Department = Tables<'departments'>
 type Tag = Tables<'tags'>
@@ -158,7 +159,7 @@ export default function PublishScreen() {
   const isNative = Platform.OS !== 'web'
 
   const formContent = (
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(40, insets.bottom + 16) }]}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(40, insets.bottom + 16), maxWidth: DETAIL_MAX, alignSelf: 'center', width: '100%' }]}>
       <Surface style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
         <Text variant="headlineSmall" style={[styles.title, { color: colors.primary }]}>
           Publicar auto
