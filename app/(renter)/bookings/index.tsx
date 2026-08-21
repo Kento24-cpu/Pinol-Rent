@@ -4,13 +4,14 @@ import { Text, Button, useTheme, Icon } from 'react-native-paper'
 import { router, useFocusEffect } from 'expo-router'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { useBookings } from '../../../src/hooks/useBookings'
+import { ErrorSnackbar } from '../../../src/components/ErrorSnackbar'
 import { BookingCard } from '../../../src/components/BookingCard'
 import { ScreenContainer } from '../../../src/components/ScreenContainer'
 
 export default function RenterBookingsScreen() {
   const { colors } = useTheme()
   const session = useAuthStore((s) => s.session)
-  const { bookings, loading, fetchMyBookings } = useBookings()
+  const { bookings, loading, fetchMyBookings, error, clearError } = useBookings()
 
   useFocusEffect(useCallback(() => { fetchMyBookings() }, [fetchMyBookings]))
 
@@ -61,6 +62,7 @@ export default function RenterBookingsScreen() {
           style={{ flex: 1 }}
         />
       </ScreenContainer>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </View>
   )
 }

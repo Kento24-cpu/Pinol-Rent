@@ -3,13 +3,14 @@ import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native'
 import { Text, Button, Surface, Chip, useTheme, Icon, Searchbar } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAdminBookings } from '../../src/hooks/useAdminBookings'
+import { ErrorSnackbar } from '../../src/components/ErrorSnackbar'
 import { STATUS_COLORS, STATUS_LABELS } from '../../src/lib/bookingStatus'
 import { ScreenContainer } from '../../src/components/ScreenContainer'
 
 export default function AdminBookingsScreen() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
-  const { bookings, loading, fetchAll } = useAdminBookings()
+  const { bookings, loading, fetchAll, error, clearError } = useAdminBookings()
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -120,6 +121,7 @@ export default function AdminBookingsScreen() {
           />
         )}
       </ScreenContainer>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </View>
   )
 }

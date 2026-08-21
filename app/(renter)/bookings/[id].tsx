@@ -4,6 +4,7 @@ import { Text, Button, Surface, Chip, Snackbar, useTheme, Icon, TextInput, Porta
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { useBookings } from '../../../src/hooks/useBookings'
 import { useReviews } from '../../../src/hooks/useReviews'
+import { ErrorSnackbar } from '../../../src/components/ErrorSnackbar'
 import { RatingInput } from '../../../src/components/RatingInput'
 import { STATUS_COLORS, STATUS_LABELS } from '../../../src/lib/bookingStatus'
 import { RENTER_FEE, renterFeeAmount } from '../../../src/lib/commission'
@@ -17,8 +18,8 @@ export default function RenterBookingDetailScreen() {
   const userId = useAuthStore((s) => s.session?.user?.id)
   const { id: bookingIdParam } = useLocalSearchParams<{ id: string }>()
   const { colors } = useTheme()
-  const { fetchBooking, cancelBooking } = useBookings()
-  const { fetchBookingReview, createReview } = useReviews()
+  const { fetchBooking, cancelBooking, error: bookingsError, clearError: clearBookingsError } = useBookings()
+  const { fetchBookingReview, createReview, error: reviewsError, clearError: clearReviewsError } = useReviews()
   const [booking, setBooking] = useState<BookingWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
   const [paymentDeadline, setPaymentDeadline] = useState<string | null>(null)
@@ -310,6 +311,8 @@ export default function RenterBookingDetailScreen() {
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
       </Snackbar>
+      <ErrorSnackbar error={bookingsError} onDismiss={clearBookingsError} />
+      <ErrorSnackbar error={reviewsError} onDismiss={clearReviewsError} />
     </ScrollView>
   )
 }

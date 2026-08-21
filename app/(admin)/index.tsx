@@ -4,13 +4,14 @@ import { Text, Button, Surface, Chip, useTheme, Icon } from 'react-native-paper'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { usePaymentIntents } from '../../src/hooks/usePaymentIntents'
+import { ErrorSnackbar } from '../../src/components/ErrorSnackbar'
 import { ScreenContainer } from '../../src/components/ScreenContainer'
 import { useColumns } from '../../src/lib/responsive'
 
 export default function AdminDashboard() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
-  const { intents, loading, fetchPending } = usePaymentIntents()
+  const { intents, loading, fetchPending, error, clearError } = usePaymentIntents()
   const [refreshing, setRefreshing] = useState(false)
   const cols = useColumns({ mobile: 1, tablet: 2, desktop: 2 })
 
@@ -104,6 +105,7 @@ export default function AdminDashboard() {
           />
         )}
       </ScreenContainer>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </View>
   )
 }
