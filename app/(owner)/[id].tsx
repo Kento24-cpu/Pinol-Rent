@@ -1,18 +1,17 @@
 import { useState, useCallback, useRef } from 'react'
-import { View, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native'
+import { View, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native'
 import { Text, Button, Surface, Chip, Icon, Switch, Snackbar, Dialog, Portal, useTheme } from 'react-native-paper'
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../src/lib/supabase'
 import { useAuthStore } from '../../src/stores/authStore'
 import { OWNER_COMMISSION, ownerNetPrice, ownerCommissionAmount } from '../../src/lib/commission'
 import { DETAIL_MAX, useBreakpoint } from '../../src/lib/responsive'
+import { BackButton } from '../../src/components/BackButton'
 import type { CarWithRelations } from '../../src/types/database.types'
 
 export default function OwnerCarDetailScreen() {
   const { id } = useLocalSearchParams()
   const { colors } = useTheme()
-  const insets = useSafeAreaInsets()
   const [imageError, setImageError] = useState(false)
   const user = useAuthStore((s) => s.session?.user)
   const [car, setCar] = useState<CarWithRelations | null>(null)
@@ -202,9 +201,7 @@ export default function OwnerCarDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={[styles.backButton, { top: insets.top + 8 }]} onPress={() => router.back()}>
-        <Icon source="arrow-left" size={24} color={colors.surface} />
-      </TouchableOpacity>
+      <BackButton />
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.scroll, { maxWidth: DETAIL_MAX, alignSelf: 'center', width: '100%' }]}
@@ -250,7 +247,6 @@ export default function OwnerCarDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  backButton: { position: 'absolute', left: 16, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20, padding: 8 },
   scroll: { paddingBottom: 40 },
   hero: { width: '100%', height: 300, borderRadius: 16, overflow: 'hidden', marginTop: 8, marginBottom: 16, position: 'relative' },
   heroImage: { width: '100%', height: '100%' },
