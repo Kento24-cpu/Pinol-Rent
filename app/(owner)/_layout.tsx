@@ -36,7 +36,7 @@ export default function OwnerLayout() {
         drawerActiveTintColor: colors.primary,
         drawerInactiveTintColor: colors.onSurfaceVariant,
         drawerActiveBackgroundColor: colors.primaryContainer,
-        drawerStyle: { backgroundColor: colors.surface, width: SIDEBAR_WIDTH },
+        drawerStyle: { backgroundColor: colors.surface, width: SIDEBAR_WIDTH, borderRightWidth: 1, borderRightColor: colors.outline },
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.onBackground,
         headerShadowVisible: false,

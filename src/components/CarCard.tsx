@@ -148,7 +148,7 @@ export const CarCard = memo(function CarCard({ car, onPress, role, grid }: CarCa
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: 16, marginVertical: 10, borderRadius: 16 },
-  cardGrid: { marginHorizontal: 0, marginVertical: 0, borderRadius: 16 },
+  cardGrid: { marginHorizontal: 0, marginVertical: 0, borderRadius: 16, flex: 1 },
   cover: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180 },
   coverPlaceholder: { borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 180, justifyContent: 'center', alignItems: 'center' },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
