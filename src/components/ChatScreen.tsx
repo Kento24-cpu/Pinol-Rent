@@ -3,6 +3,7 @@ import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TextInput a
 import { Text, IconButton, useTheme, ActivityIndicator, Avatar, Icon, Snackbar } from 'react-native-paper'
 import * as ImagePicker from 'expo-image-picker'
 import { useChat } from '../hooks/useChat'
+import { ErrorSnackbar } from './ErrorSnackbar'
 import { showAlert } from '../lib/alert'
 import { LIST_MAX_WIDTH } from '../lib/responsive'
 import type { MessageWithSender } from '../types/database.types'
@@ -17,7 +18,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
   const { colors } = useTheme()
   const userId = useAuthStore((s) => s.session?.user?.id)
   const user = useAuthStore((s) => s.session?.user)
-  const { messages, loading, sending, sendMessage, markAsRead } = useChat(conversationId)
+  const { messages, loading, sending, sendMessage, markAsRead, error, clearError } = useChat(conversationId)
   const clearUnread = useChatStore((s) => s.clearUnreadForConversation)
   const [input, setInput] = useState('')
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
@@ -174,6 +175,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
       </Snackbar>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </KeyboardAvoidingView>
   )
 }

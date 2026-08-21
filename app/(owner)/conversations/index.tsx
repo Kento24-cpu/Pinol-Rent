@@ -3,12 +3,13 @@ import { View, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Refres
 import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge } from 'react-native-paper'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useConversations } from '../../../src/hooks/useConversations'
+import { ErrorSnackbar } from '../../../src/components/ErrorSnackbar'
 import { ScreenContainer } from '../../../src/components/ScreenContainer'
 
 export default function OwnerConversationsScreen() {
   const { carId: carIdParam } = useLocalSearchParams<{ carId?: string }>()
   const { colors } = useTheme()
-  const { conversations, loading, refetch } = useConversations()
+  const { conversations, loading, refetch, error, clearError } = useConversations()
   const [search, setSearch] = useState('')
 
   useFocusEffect(useCallback(() => { refetch() }, [refetch]))
@@ -103,6 +104,7 @@ export default function OwnerConversationsScreen() {
           style={{ flex: 1 }}
         />
       </ScreenContainer>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </View>
   )
 }

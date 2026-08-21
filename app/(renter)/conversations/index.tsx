@@ -4,12 +4,13 @@ import { Text, Card, Searchbar, useTheme, Icon, Avatar, Badge, Button } from 're
 import { router, useFocusEffect } from 'expo-router'
 import { useAuthStore } from '../../../src/stores/authStore'
 import { useConversations } from '../../../src/hooks/useConversations'
+import { ErrorSnackbar } from '../../../src/components/ErrorSnackbar'
 import { ScreenContainer } from '../../../src/components/ScreenContainer'
 
 export default function RenterConversationsScreen() {
   const { colors } = useTheme()
   const session = useAuthStore((s) => s.session)
-  const { conversations, loading, refetch } = useConversations()
+  const { conversations, loading, refetch, error, clearError } = useConversations()
   const [search, setSearch] = useState('')
 
   useFocusEffect(useCallback(() => { refetch() }, [refetch]))
@@ -113,6 +114,7 @@ export default function RenterConversationsScreen() {
           style={{ flex: 1 }}
         />
       </ScreenContainer>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </View>
   )
 }

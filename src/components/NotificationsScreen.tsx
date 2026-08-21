@@ -5,13 +5,14 @@ import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuthStore } from '../stores/authStore'
 import { useNotificationPrefs } from '../hooks/useNotificationPrefs'
+import { ErrorSnackbar } from './ErrorSnackbar'
 import { LIST_MAX_WIDTH } from '../lib/responsive'
 
 export function NotificationsScreen() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const session = useAuthStore((s) => s.session)
-  const { prefs, loading, updatePref } = useNotificationPrefs()
+  const { prefs, loading, updatePref, error, clearError } = useNotificationPrefs()
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' })
 
   if (!session) {
@@ -90,6 +91,7 @@ export function NotificationsScreen() {
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={3000}>
         {snackbar.message}
       </Snackbar>
+      <ErrorSnackbar error={error} onDismiss={clearError} />
     </ScrollView>
   )
 }
