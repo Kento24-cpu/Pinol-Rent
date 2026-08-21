@@ -21,17 +21,21 @@ export function useChat(conversationId: number | null) {
   const [messages, setMessages] = useState<MessageWithSender[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const genRef = useRef(0)
+
+  const clearError = () => setError(null)
 
   const fetchMessages = useCallback(async () => {
     if (!conversationId || !user) return
     const gen = ++genRef.current
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('messages')
       .select('*, sender:sender_id(full_name, avatar_url)')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true })
     if (gen !== genRef.current) { setLoading(false); return }
+    if (fetchError) { setError(fetchError.message); setLoading(false); return }
     if (data) {
       const raw = data as unknown as MessageWithSender[]
       const signed = await Promise.all(raw.map(signAttachment))
@@ -126,5 +130,5 @@ export function useChat(conversationId: number | null) {
     }
   }, [user, conversationId])
 
-  return { messages, loading, sending, sendMessage, markAsRead, refetch: fetchMessages }
+  return { messages, loading, sending, error, clearError, sendMessage, markAsRead, refetch: fetchMessages }
 }

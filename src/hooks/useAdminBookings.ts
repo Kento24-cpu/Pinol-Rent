@@ -22,12 +22,16 @@ interface AdminBooking {
 export function useAdminBookings() {
   const [bookings, setBookings] = useState<AdminBooking[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const clearError = () => setError(null)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase.rpc('get_all_bookings')
-    if (error) {
-      console.error('fetch all bookings error', error)
+    setError(null)
+    const { data, error: fetchError } = await supabase.rpc('get_all_bookings')
+    if (fetchError) {
+      setError(fetchError.message)
       setBookings([])
     } else {
       setBookings((data ?? []) as unknown as AdminBooking[])
@@ -35,5 +39,5 @@ export function useAdminBookings() {
     setLoading(false)
   }, [])
 
-  return { bookings, loading, fetchAll }
+  return { bookings, loading, error, clearError, fetchAll }
 }

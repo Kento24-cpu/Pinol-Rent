@@ -7,22 +7,26 @@ export function useReviews() {
   const user = useAuthStore((s) => s.session?.user)
   const [reviews, setReviews] = useState<ReviewWithRelations[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const genRef = useRef(0)
+
+  const clearError = () => setError(null)
 
   const fetchCarReviews = useCallback(async (carId: number) => {
     const gen = ++genRef.current
     setLoading(true)
     try {
-      const { data } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('reviews')
         .select('*, renter:renter_id(full_name, avatar_url)')
         .eq('car_id', carId)
         .order('created_at', { ascending: false })
-      if (gen !== genRef.current) return
+      if (gen !== genRef.current) return []
+      if (fetchError) { setError(fetchError.message); return [] }
       if (data) setReviews(data as unknown as ReviewWithRelations[])
       return (data ?? []) as ReviewWithRelations[]
     } catch (e) {
-      console.error('Failed to fetch reviews', e)
+      setError((e as Error).message)
       return []
     } finally {
       setLoading(false)
@@ -30,11 +34,12 @@ export function useReviews() {
   }, [])
 
   const fetchBookingReview = useCallback(async (bookingId: number) => {
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('reviews')
       .select('*, renter:renter_id(full_name, avatar_url)')
       .eq('booking_id', bookingId)
       .single()
+    if (fetchError) { setError(fetchError.message); return null }
     return (data ?? null) as ReviewWithRelations | null
   }, [])
 
@@ -77,5 +82,5 @@ export function useReviews() {
     if (error) throw new Error(error.message)
   }, [])
 
-  return { reviews, loading, fetchCarReviews, fetchBookingReview, createReview, updateReview, deleteReview }
+  return { reviews, loading, error, clearError, fetchCarReviews, fetchBookingReview, createReview, updateReview, deleteReview }
 }

@@ -20,7 +20,10 @@ export function useBookings() {
   const user = useAuthStore((s) => s.session?.user)
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const genRef = useRef(0)
+
+  const clearError = () => setError(null)
 
   const createBooking = useCallback(async ({ carId, startDate, endDate, totalPrice, unitPrice, status, paymentMethod }: CreateBookingParams) => {
     if (!user) throw new Error('Debes iniciar sesión')
@@ -103,7 +106,7 @@ export function useBookings() {
       if (gen !== genRef.current) return
       setBookings((data ?? []) as unknown as BookingWithRelations[])
     } catch (e) {
-      console.error('Failed to fetch renter bookings', e)
+      setError((e as Error).message)
     } finally {
       setLoading(false)
     }
@@ -124,18 +127,22 @@ export function useBookings() {
       if (gen !== genRef.current) return
       setBookings((data ?? []) as unknown as BookingWithRelations[])
     } catch (e) {
-      console.error('Failed to fetch owner bookings', e)
+      setError((e as Error).message)
     } finally {
       setLoading(false)
     }
   }, [user])
 
   const fetchBooking = useCallback(async (bookingId: number) => {
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('bookings')
       .select('*, car:car_id(brand, model, image_url, price_per_day, deposit), renter:renter_id(full_name, avatar_url)')
       .eq('id', bookingId)
       .single()
+    if (fetchError) {
+      setError(fetchError.message)
+      return null
+    }
 
     return (data ?? null) as BookingWithRelations | null
   }, [])
@@ -154,6 +161,8 @@ export function useBookings() {
   return {
     bookings,
     loading,
+    error,
+    clearError,
     createBooking,
     cancelBooking,
     confirmBooking,
