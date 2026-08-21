@@ -10,6 +10,9 @@ export const BREAKPOINTS = {
 export const SIDEBAR_WIDTH = 280
 export const CONTENT_MAX = 1200
 export const DETAIL_MAX = 900
+export const CARD_MAX_WIDTH = 520
+export const LIST_MAX_WIDTH = 630
+export const DETAIL_MAX_WIDTH = 720
 
 export function useBreakpoint(): Breakpoint {
   const { width } = useWindowDimensions()
