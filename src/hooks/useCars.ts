@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { CarWithRelations } from '../types/database.types'
+import { parseRows } from '../lib/supabaseParse'
+import { carRowSchema } from '../lib/rowSchemas'
 
 interface FlatCar {
   id: number
@@ -138,7 +140,7 @@ export function useCars(options?: UseCarsOptions) {
       return null
     }
     setError(null)
-    const mapped = (data as unknown as CarWithRelations[]).map(mapCar)
+    const mapped = parseRows(data, carRowSchema).map(mapCar)
     return mapped
   }, [])
 

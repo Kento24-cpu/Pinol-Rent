@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import type { BookingWithRelations } from '../types/database.types'
 import type { Database } from '../types/database'
+import { parseRows, parseRow } from '../lib/supabaseParse'
+import { bookingRowSchema } from '../lib/rowSchemas'
 
 type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'pending_payment'
 
@@ -20,7 +22,10 @@ export function useBookings() {
   const user = useAuthStore((s) => s.session?.user)
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const genRef = useRef(0)
+
+  const clearError = () => setError(null)
 
   const createBooking = useCallback(async ({ carId, startDate, endDate, totalPrice, unitPrice, status, paymentMethod }: CreateBookingParams) => {
     if (!user) throw new Error('Debes iniciar sesión')
@@ -101,9 +106,9 @@ export function useBookings() {
         .order('created_at', { ascending: false })
 
       if (gen !== genRef.current) return
-      setBookings((data ?? []) as unknown as BookingWithRelations[])
+      setBookings(parseRows(data, bookingRowSchema))
     } catch (e) {
-      console.error('Failed to fetch renter bookings', e)
+      setError((e as Error).message)
     } finally {
       setLoading(false)
     }
@@ -122,9 +127,9 @@ export function useBookings() {
         .order('created_at', { ascending: false })
 
       if (gen !== genRef.current) return
-      setBookings((data ?? []) as unknown as BookingWithRelations[])
+      setBookings(parseRows(data, bookingRowSchema))
     } catch (e) {
-      console.error('Failed to fetch owner bookings', e)
+      setError((e as Error).message)
     } finally {
       setLoading(false)
     }
@@ -137,7 +142,7 @@ export function useBookings() {
       .eq('id', bookingId)
       .single()
 
-    return (data ?? null) as BookingWithRelations | null
+    return parseRow(data, bookingRowSchema)
   }, [])
 
   const checkAvailability = useCallback(async (carId: number, startDate: string, endDate: string) => {
@@ -154,6 +159,8 @@ export function useBookings() {
   return {
     bookings,
     loading,
+    error,
+    clearError,
     createBooking,
     cancelBooking,
     confirmBooking,

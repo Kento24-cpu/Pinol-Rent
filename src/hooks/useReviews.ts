@@ -2,6 +2,8 @@ import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import type { ReviewWithRelations } from '../types/database.types'
+import { parseRows, parseRow } from '../lib/supabaseParse'
+import { reviewRowSchema } from '../lib/rowSchemas'
 
 export function useReviews() {
   const user = useAuthStore((s) => s.session?.user)
@@ -19,8 +21,8 @@ export function useReviews() {
         .eq('car_id', carId)
         .order('created_at', { ascending: false })
       if (gen !== genRef.current) return
-      if (data) setReviews(data as unknown as ReviewWithRelations[])
-      return (data ?? []) as ReviewWithRelations[]
+      if (data) setReviews(parseRows(data, reviewRowSchema))
+      return parseRows(data, reviewRowSchema)
     } catch (e) {
       console.error('Failed to fetch reviews', e)
       return []
@@ -35,7 +37,7 @@ export function useReviews() {
       .select('*, renter:renter_id(full_name, avatar_url)')
       .eq('booking_id', bookingId)
       .single()
-    return (data ?? null) as ReviewWithRelations | null
+    return parseRow(data, reviewRowSchema)
   }, [])
 
   const createReview = useCallback(async (
